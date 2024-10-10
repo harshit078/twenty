@@ -40,6 +40,8 @@ import { WebhookOperationType } from '~/pages/settings/developers/webhooks/types
 
 const OBJECT_DROPDOWN_WIDTH = 340;
 const ACTION_DROPDOWN_WIDTH = 140;
+const OBJECT_Mobile_WIDTH = 150;
+const ACTION_Mobile_WIDTH = 140;
 
 const StyledFilterRow = styled.div`
   display: grid;
