@@ -18,7 +18,6 @@ import { useListenClickOutside } from '@/ui/utilities/pointer-event/hooks/useLis
 import { FieldMetadataType } from '~/generated-metadata/graphql';
 import { moveArrayItem } from '~/utils/array/moveArrayItem';
 import { toSpliced } from '~/utils/array/toSpliced';
-import { turnIntoEmptyStringIfWhitespacesOnly } from '~/utils/string/turnIntoEmptyStringIfWhitespacesOnly';
 
 const StyledDropdownMenu = styled(DropdownMenu)`
   left: -1px;
@@ -191,11 +190,7 @@ export const MultiItemFieldInput = <T,>({
                   })
               : undefined
           }
-          onChange={(event) =>
-            handleOnChange(
-              turnIntoEmptyStringIfWhitespacesOnly(event.target.value),
-            )
-          }
+          onChange={(event) => handleOnChange(event.target.value)}
           onEnter={handleSubmitInput}
           rightComponent={
             <LightIconButton
