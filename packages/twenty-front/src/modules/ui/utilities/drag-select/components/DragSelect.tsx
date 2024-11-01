@@ -1,4 +1,4 @@
-import { RefObject } from 'react';
+import { RefObject, useCallback, useEffect } from 'react';
 import {
   boxesIntersect,
   useSelectionContainer,
@@ -19,6 +19,47 @@ export const DragSelect = ({
   onDragSelectionChange,
   onDragSelectionStart,
 }: DragSelectProps) => {
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key === 'a' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        const items = dragSelectable.current?.querySelectorAll<HTMLElement>(
+          '[data-selectable-id]',
+        );
+        if (!items) return;
+
+        queueMicrotask(() => {
+          items.forEach((item) => {
+            const id = item.getAttribute('data-selectable-id');
+            if (id) onDragSelectionChange(id, true);
+          });
+        });
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+
+        const items = dragSelectable.current?.querySelectorAll<HTMLElement>(
+          '[data-selectable-id]',
+        );
+        if (!items) return;
+
+        queueMicrotask(() => {
+          items.forEach((item) => {
+            const id = item.getAttribute('data-selectable-id');
+            if (id) onDragSelectionChange(id, false);
+          });
+        });
+      }
+    },
+    [dragSelectable, onDragSelectionChange],
+  );
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
   const theme = useTheme();
   const { isDragSelectionStartEnabled } = useDragSelect();
   const { DragSelection } = useSelectionContainer({
