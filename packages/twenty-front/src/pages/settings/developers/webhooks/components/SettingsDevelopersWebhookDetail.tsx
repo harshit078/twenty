@@ -249,7 +249,7 @@ export const SettingsDevelopersWebhooksDetail = () => {
             description="Select the events you wish to send to this endpoint"
           />
           {operations.map((operation, index) => (
-            <StyledFilterRow key={index}>
+            <StyledFilterRow isMobile={isMobile} key={index}>
               <Select
                 withSearchInput
                 dropdownWidth={
