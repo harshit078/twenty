@@ -45,9 +45,7 @@ const StyledContainer = styled.div<{
       : theme.spacing(3, 2, 4)};
 
   @media (max-width: ${MOBILE_VIEWPORT}px) {
-    width: 100%;
-    padding-left: 20px;
-    padding-right: 20px;
+    width: 95%;
   }
 `;
 
