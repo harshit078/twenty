@@ -107,26 +107,26 @@ export const NavigationDrawer = ({
         componentInstanceId="scroll-wrapper-navigation-drawer"
         contextProviderName="navigationDrawer"
       >
-        <StyledContainer
-          isSettings={isSettingsDrawer}
-          isMobile={isMobile}
-          onMouseEnter={handleHover}
-          onMouseLeave={handleMouseLeave}
-        >
-          {isSettingsDrawer && title ? (
-            !isMobile && <NavigationDrawerBackButton title={title} />
-          ) : (
-            <NavigationDrawerHeader
-              name={title}
-              logo={logo}
-              showCollapseButton={isHovered}
-            />
-          )}
-          <StyledItemsContainer isSettings={isSettingsDrawer}>
-            {children}
-          </StyledItemsContainer>
-          {footer}
-        </StyledContainer>
+      <StyledContainer
+        isSettings={isSettingsDrawer}
+        isMobile={isMobile}
+        onMouseEnter={handleHover}
+        onMouseLeave={handleMouseLeave}
+      >
+        {isSettingsDrawer && title ? (
+          !isMobile && <NavigationDrawerBackButton title={title} />
+        ) : (
+          <NavigationDrawerHeader
+            name={title}
+            logo={logo}
+            showCollapseButton={isHovered}
+          />
+        )}
+        <StyledItemsContainer isSettings={isSettingsDrawer}>
+          {children}
+        </StyledItemsContainer>
+        {footer}
+      </StyledContainer>
       </ScrollWrapper>
     </StyledAnimatedContainer>
   );
