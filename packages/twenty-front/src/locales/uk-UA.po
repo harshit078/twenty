@@ -100,8 +100,8 @@ msgstr "{workspaceMemberName} буде позбавлений наступної
 
 #. js-lingui-id: YT0WJ4
 #: src/pages/onboarding/ChooseYourPlan.tsx
-msgid "1 000 workflow node executions"
-msgstr "1 000 виконань вузлів робочого процесу"
+#~ msgid "1 000 workflow node executions"
+#~ msgstr "1 000 виконань вузлів робочого процесу"
 
 #. js-lingui-id: vb5TwV
 #: src/pages/settings/data-model/SettingsObjectNewField/SettingsObjectNewFieldSelect.tsx
@@ -113,6 +113,11 @@ msgstr "1. Виберіть тип поля"
 #: src/modules/settings/data-model/components/SettingsDataModelNewFieldBreadcrumbDropDown.tsx
 msgid "1. Type"
 msgstr "1. Тип"
+
+#. js-lingui-id: AvXug3
+#: src/pages/onboarding/ChooseYourPlan.tsx
+msgid "10 000 workflow node executions"
+msgstr ""
 
 #. js-lingui-id: 4EdXYs
 #: src/pages/settings/profile/appearance/components/DateTimeSettingsTimeFormatSelect.tsx
@@ -129,6 +134,11 @@ msgstr "2. Налаштуйте"
 #: src/pages/settings/data-model/SettingsObjectNewField/SettingsObjectNewFieldConfigure.tsx
 msgid "2. Configure field"
 msgstr "2. Налаштування поля"
+
+#. js-lingui-id: kAtmAv
+#: src/pages/onboarding/ChooseYourPlan.tsx
+msgid "20 000 workflow node executions"
+msgstr ""
 
 #. js-lingui-id: QsMprd
 #: src/pages/settings/profile/appearance/components/DateTimeSettingsTimeFormatSelect.tsx
@@ -232,7 +242,7 @@ msgid "Add Approved Access Domain"
 msgstr "Додати затверджений домен доступу"
 
 #. js-lingui-id: DpV70M
-#: src/modules/workflow/workflow-steps/workflow-actions/form-action/components/WorkflowEditActionForm.tsx
+#: src/modules/workflow/workflow-steps/workflow-actions/form-action/components/WorkflowEditActionFormBuilder.tsx
 #: src/modules/settings/data-model/object-details/components/tabs/ObjectFields.tsx
 msgid "Add Field"
 msgstr "Додати поле"
@@ -432,6 +442,7 @@ msgid "API"
 msgstr "API"
 
 #. js-lingui-id: 0RqpZr
+#: src/pages/onboarding/ChooseYourPlan.tsx
 #: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "API & Webhooks"
 msgstr "API та Webhooks"
@@ -1068,6 +1079,7 @@ msgstr "Користувацький домен оновлено"
 
 #. js-lingui-id: 8skTDV
 #: src/pages/onboarding/ChooseYourPlan.tsx
+#: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "Custom objects"
 msgstr "Користувацькі об'єкти"
 
@@ -1496,6 +1508,7 @@ msgid "Email cannot be empty"
 msgstr "Електронна пошта не може бути порожньою"
 
 #. js-lingui-id: lfQsvW
+#: src/pages/onboarding/ChooseYourPlan.tsx
 #: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "Email integration"
 msgstr "Інтеграція електронної пошти"
@@ -1943,6 +1956,7 @@ msgid "from yearly to monthly"
 msgstr "з річного на щомісячний"
 
 #. js-lingui-id: scmRyR
+#: src/pages/onboarding/ChooseYourPlan.tsx
 #: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "Full access"
 msgstr "Повний доступ"
@@ -2451,9 +2465,9 @@ msgid "Log out"
 msgstr "Вийти"
 
 #. js-lingui-id: nOhz3x
-#: src/modules/settings/hooks/useSettingsNavigationItems.tsx
-#~ msgid "Logout"
-#~ msgstr "Logout"
+#: src/modules/settings/components/SettingsNavigationDrawerItems.tsx
+msgid "Logout"
+msgstr "Logout"
 
 #. js-lingui-id: PTozs8
 #: src/modules/settings/admin-panel/components/SettingsAdminGeneral.tsx
@@ -3309,7 +3323,7 @@ msgid "Restore records"
 msgstr "Відновити записи"
 
 #. js-lingui-id: kx0s+n
-#: src/modules/command-menu/hooks/useSearchRecords.tsx
+#: src/modules/command-menu/hooks/useCommandMenuSearchRecords.tsx
 msgid "Results"
 msgstr "Результати"
 
@@ -3400,6 +3414,7 @@ msgstr "Пошук індексу..."
 #: src/modules/object-record/object-sort-dropdown/components/ObjectSortDropdownButton.tsx
 #: src/modules/object-record/object-options-dropdown/components/ObjectOptionsDropdownRecordGroupFieldsContent.tsx
 #: src/modules/object-record/object-filter-dropdown/components/ObjectFilterDropdownFilterSelect.tsx
+#: src/modules/object-record/advanced-filter/components/AdvancedFilterFieldSelectSearchInput.tsx
 msgid "Search fields"
 msgstr "Пошук полів"
 
@@ -3657,6 +3672,11 @@ msgstr "Іспанська"
 msgid "SSO"
 msgstr "Єдиний вхід"
 
+#. js-lingui-id: vlvAkg
+#: src/pages/onboarding/ChooseYourPlan.tsx
+msgid "SSO (SAML / OIDC)"
+msgstr ""
+
 #. js-lingui-id: ErU1td
 #: src/modules/views/view-picker/components/ViewPickerContentCreateMode.tsx
 msgid "Stages"
@@ -3745,6 +3765,11 @@ msgstr "Перейти {to}"
 #: src/pages/settings/SettingsBilling.tsx
 msgid "Switch billing {to}"
 msgstr "Змінити біллінг {to}"
+
+#. js-lingui-id: lz+f/E
+#: src/pages/onboarding/ChooseYourPlan.tsx
+msgid "Switch to {alternatePlanName}"
+msgstr ""
 
 #. js-lingui-id: 5TRY4+
 #: src/modules/settings/accounts/components/SettingsAccountsConnectedAccountsRowRightContainer.tsx
@@ -4028,6 +4053,7 @@ msgid "Unknown error"
 msgstr "Невідома помилка"
 
 #. js-lingui-id: GQCXQS
+#: src/pages/onboarding/ChooseYourPlan.tsx
 #: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "Unlimited contacts"
 msgstr "Необмежена кількість контактів"

@@ -100,8 +100,8 @@ msgstr "{workspaceMemberName} bude odebrán z následující role:"
 
 #. js-lingui-id: YT0WJ4
 #: src/pages/onboarding/ChooseYourPlan.tsx
-msgid "1 000 workflow node executions"
-msgstr "1 000 spuštění uzlů Workflow"
+#~ msgid "1 000 workflow node executions"
+#~ msgstr "1 000 spuštění uzlů Workflow"
 
 #. js-lingui-id: vb5TwV
 #: src/pages/settings/data-model/SettingsObjectNewField/SettingsObjectNewFieldSelect.tsx
@@ -113,6 +113,11 @@ msgstr "1. Vyberte typ pole"
 #: src/modules/settings/data-model/components/SettingsDataModelNewFieldBreadcrumbDropDown.tsx
 msgid "1. Type"
 msgstr "1. Typ"
+
+#. js-lingui-id: AvXug3
+#: src/pages/onboarding/ChooseYourPlan.tsx
+msgid "10 000 workflow node executions"
+msgstr ""
 
 #. js-lingui-id: 4EdXYs
 #: src/pages/settings/profile/appearance/components/DateTimeSettingsTimeFormatSelect.tsx
@@ -129,6 +134,11 @@ msgstr "2. Nakonfigurujte"
 #: src/pages/settings/data-model/SettingsObjectNewField/SettingsObjectNewFieldConfigure.tsx
 msgid "2. Configure field"
 msgstr "2. Nakonfigurujte pole"
+
+#. js-lingui-id: kAtmAv
+#: src/pages/onboarding/ChooseYourPlan.tsx
+msgid "20 000 workflow node executions"
+msgstr ""
 
 #. js-lingui-id: QsMprd
 #: src/pages/settings/profile/appearance/components/DateTimeSettingsTimeFormatSelect.tsx
@@ -232,7 +242,7 @@ msgid "Add Approved Access Domain"
 msgstr "Přidat schválenou přístupovou doménu"
 
 #. js-lingui-id: DpV70M
-#: src/modules/workflow/workflow-steps/workflow-actions/form-action/components/WorkflowEditActionForm.tsx
+#: src/modules/workflow/workflow-steps/workflow-actions/form-action/components/WorkflowEditActionFormBuilder.tsx
 #: src/modules/settings/data-model/object-details/components/tabs/ObjectFields.tsx
 msgid "Add Field"
 msgstr "Přidat pole"
@@ -432,6 +442,7 @@ msgid "API"
 msgstr "API"
 
 #. js-lingui-id: 0RqpZr
+#: src/pages/onboarding/ChooseYourPlan.tsx
 #: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "API & Webhooks"
 msgstr "API & Webhooks"
@@ -1068,6 +1079,7 @@ msgstr "Vlastní doména aktualizována"
 
 #. js-lingui-id: 8skTDV
 #: src/pages/onboarding/ChooseYourPlan.tsx
+#: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "Custom objects"
 msgstr "Vlastní objekty"
 
@@ -1496,6 +1508,7 @@ msgid "Email cannot be empty"
 msgstr "Email nesmí být prázdný"
 
 #. js-lingui-id: lfQsvW
+#: src/pages/onboarding/ChooseYourPlan.tsx
 #: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "Email integration"
 msgstr "Integrace e-mailů"
@@ -1943,6 +1956,7 @@ msgid "from yearly to monthly"
 msgstr "z ročního na měsíční"
 
 #. js-lingui-id: scmRyR
+#: src/pages/onboarding/ChooseYourPlan.tsx
 #: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "Full access"
 msgstr "Plný přístup"
@@ -2451,9 +2465,9 @@ msgid "Log out"
 msgstr "Odhlásit se"
 
 #. js-lingui-id: nOhz3x
-#: src/modules/settings/hooks/useSettingsNavigationItems.tsx
-#~ msgid "Logout"
-#~ msgstr "Logout"
+#: src/modules/settings/components/SettingsNavigationDrawerItems.tsx
+msgid "Logout"
+msgstr "Logout"
 
 #. js-lingui-id: PTozs8
 #: src/modules/settings/admin-panel/components/SettingsAdminGeneral.tsx
@@ -3309,7 +3323,7 @@ msgid "Restore records"
 msgstr "Obnovit záznamy"
 
 #. js-lingui-id: kx0s+n
-#: src/modules/command-menu/hooks/useSearchRecords.tsx
+#: src/modules/command-menu/hooks/useCommandMenuSearchRecords.tsx
 msgid "Results"
 msgstr "Výsledky"
 
@@ -3400,6 +3414,7 @@ msgstr "Hledat v indexu..."
 #: src/modules/object-record/object-sort-dropdown/components/ObjectSortDropdownButton.tsx
 #: src/modules/object-record/object-options-dropdown/components/ObjectOptionsDropdownRecordGroupFieldsContent.tsx
 #: src/modules/object-record/object-filter-dropdown/components/ObjectFilterDropdownFilterSelect.tsx
+#: src/modules/object-record/advanced-filter/components/AdvancedFilterFieldSelectSearchInput.tsx
 msgid "Search fields"
 msgstr "Hledání ve sloupcích"
 
@@ -3657,6 +3672,11 @@ msgstr "Španělština"
 msgid "SSO"
 msgstr "Jednotné přihlášení"
 
+#. js-lingui-id: vlvAkg
+#: src/pages/onboarding/ChooseYourPlan.tsx
+msgid "SSO (SAML / OIDC)"
+msgstr ""
+
 #. js-lingui-id: ErU1td
 #: src/modules/views/view-picker/components/ViewPickerContentCreateMode.tsx
 msgid "Stages"
@@ -3745,6 +3765,11 @@ msgstr "Přepnout {to}"
 #: src/pages/settings/SettingsBilling.tsx
 msgid "Switch billing {to}"
 msgstr "Přepnout fakturaci {to}"
+
+#. js-lingui-id: lz+f/E
+#: src/pages/onboarding/ChooseYourPlan.tsx
+msgid "Switch to {alternatePlanName}"
+msgstr ""
 
 #. js-lingui-id: 5TRY4+
 #: src/modules/settings/accounts/components/SettingsAccountsConnectedAccountsRowRightContainer.tsx
@@ -4028,6 +4053,7 @@ msgid "Unknown error"
 msgstr "Neznámá chyba"
 
 #. js-lingui-id: GQCXQS
+#: src/pages/onboarding/ChooseYourPlan.tsx
 #: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "Unlimited contacts"
 msgstr "Neomezený počet kontaktů"

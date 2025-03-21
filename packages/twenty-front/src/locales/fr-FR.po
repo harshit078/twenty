@@ -100,8 +100,8 @@ msgstr "{workspaceMemberName} sera retiré du rôle suivant :"
 
 #. js-lingui-id: YT0WJ4
 #: src/pages/onboarding/ChooseYourPlan.tsx
-msgid "1 000 workflow node executions"
-msgstr "1 000 exécutions de nœuds de workflow"
+#~ msgid "1 000 workflow node executions"
+#~ msgstr "1 000 exécutions de nœuds de workflow"
 
 #. js-lingui-id: vb5TwV
 #: src/pages/settings/data-model/SettingsObjectNewField/SettingsObjectNewFieldSelect.tsx
@@ -113,6 +113,11 @@ msgstr "1. Sélectionnez un type de champ"
 #: src/modules/settings/data-model/components/SettingsDataModelNewFieldBreadcrumbDropDown.tsx
 msgid "1. Type"
 msgstr "1. Type"
+
+#. js-lingui-id: AvXug3
+#: src/pages/onboarding/ChooseYourPlan.tsx
+msgid "10 000 workflow node executions"
+msgstr ""
 
 #. js-lingui-id: 4EdXYs
 #: src/pages/settings/profile/appearance/components/DateTimeSettingsTimeFormatSelect.tsx
@@ -129,6 +134,11 @@ msgstr "2. Configurer"
 #: src/pages/settings/data-model/SettingsObjectNewField/SettingsObjectNewFieldConfigure.tsx
 msgid "2. Configure field"
 msgstr "2. Configurer le champ"
+
+#. js-lingui-id: kAtmAv
+#: src/pages/onboarding/ChooseYourPlan.tsx
+msgid "20 000 workflow node executions"
+msgstr ""
 
 #. js-lingui-id: QsMprd
 #: src/pages/settings/profile/appearance/components/DateTimeSettingsTimeFormatSelect.tsx
@@ -232,7 +242,7 @@ msgid "Add Approved Access Domain"
 msgstr "Ajouter un domaine d'accès approuvé"
 
 #. js-lingui-id: DpV70M
-#: src/modules/workflow/workflow-steps/workflow-actions/form-action/components/WorkflowEditActionForm.tsx
+#: src/modules/workflow/workflow-steps/workflow-actions/form-action/components/WorkflowEditActionFormBuilder.tsx
 #: src/modules/settings/data-model/object-details/components/tabs/ObjectFields.tsx
 msgid "Add Field"
 msgstr "Ajouter un champ"
@@ -432,6 +442,7 @@ msgid "API"
 msgstr "API"
 
 #. js-lingui-id: 0RqpZr
+#: src/pages/onboarding/ChooseYourPlan.tsx
 #: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "API & Webhooks"
 msgstr "API & Webhooks"
@@ -1068,6 +1079,7 @@ msgstr "Domaine personnalisé mis à jour"
 
 #. js-lingui-id: 8skTDV
 #: src/pages/onboarding/ChooseYourPlan.tsx
+#: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "Custom objects"
 msgstr "Objets personnalisés"
 
@@ -1496,6 +1508,7 @@ msgid "Email cannot be empty"
 msgstr "L'email ne peut pas être vide"
 
 #. js-lingui-id: lfQsvW
+#: src/pages/onboarding/ChooseYourPlan.tsx
 #: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "Email integration"
 msgstr "Intégration du courriel"
@@ -1943,6 +1956,7 @@ msgid "from yearly to monthly"
 msgstr "d'annuel à mensuel"
 
 #. js-lingui-id: scmRyR
+#: src/pages/onboarding/ChooseYourPlan.tsx
 #: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "Full access"
 msgstr "Accès complet"
@@ -2451,9 +2465,9 @@ msgid "Log out"
 msgstr "Déconnexion"
 
 #. js-lingui-id: nOhz3x
-#: src/modules/settings/hooks/useSettingsNavigationItems.tsx
-#~ msgid "Logout"
-#~ msgstr "Logout"
+#: src/modules/settings/components/SettingsNavigationDrawerItems.tsx
+msgid "Logout"
+msgstr "Logout"
 
 #. js-lingui-id: PTozs8
 #: src/modules/settings/admin-panel/components/SettingsAdminGeneral.tsx
@@ -3309,7 +3323,7 @@ msgid "Restore records"
 msgstr "Restaurer les enregistrements"
 
 #. js-lingui-id: kx0s+n
-#: src/modules/command-menu/hooks/useSearchRecords.tsx
+#: src/modules/command-menu/hooks/useCommandMenuSearchRecords.tsx
 msgid "Results"
 msgstr "Résultats"
 
@@ -3400,6 +3414,7 @@ msgstr "Rechercher un index..."
 #: src/modules/object-record/object-sort-dropdown/components/ObjectSortDropdownButton.tsx
 #: src/modules/object-record/object-options-dropdown/components/ObjectOptionsDropdownRecordGroupFieldsContent.tsx
 #: src/modules/object-record/object-filter-dropdown/components/ObjectFilterDropdownFilterSelect.tsx
+#: src/modules/object-record/advanced-filter/components/AdvancedFilterFieldSelectSearchInput.tsx
 msgid "Search fields"
 msgstr "Champs de recherche"
 
@@ -3657,6 +3672,11 @@ msgstr "Espagnol"
 msgid "SSO"
 msgstr "SSO"
 
+#. js-lingui-id: vlvAkg
+#: src/pages/onboarding/ChooseYourPlan.tsx
+msgid "SSO (SAML / OIDC)"
+msgstr ""
+
 #. js-lingui-id: ErU1td
 #: src/modules/views/view-picker/components/ViewPickerContentCreateMode.tsx
 msgid "Stages"
@@ -3745,6 +3765,11 @@ msgstr "Changer {to}"
 #: src/pages/settings/SettingsBilling.tsx
 msgid "Switch billing {to}"
 msgstr "Changer la facturation {to}"
+
+#. js-lingui-id: lz+f/E
+#: src/pages/onboarding/ChooseYourPlan.tsx
+msgid "Switch to {alternatePlanName}"
+msgstr ""
 
 #. js-lingui-id: 5TRY4+
 #: src/modules/settings/accounts/components/SettingsAccountsConnectedAccountsRowRightContainer.tsx
@@ -4028,6 +4053,7 @@ msgid "Unknown error"
 msgstr "Erreur inconnue"
 
 #. js-lingui-id: GQCXQS
+#: src/pages/onboarding/ChooseYourPlan.tsx
 #: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "Unlimited contacts"
 msgstr "Contacts illimités"

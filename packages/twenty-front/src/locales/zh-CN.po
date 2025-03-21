@@ -100,8 +100,8 @@ msgstr "{workspaceMemberName}将不再被分配以下角色："
 
 #. js-lingui-id: YT0WJ4
 #: src/pages/onboarding/ChooseYourPlan.tsx
-msgid "1 000 workflow node executions"
-msgstr "1,000 次工作流节点执行"
+#~ msgid "1 000 workflow node executions"
+#~ msgstr "1,000 次工作流节点执行"
 
 #. js-lingui-id: vb5TwV
 #: src/pages/settings/data-model/SettingsObjectNewField/SettingsObjectNewFieldSelect.tsx
@@ -113,6 +113,11 @@ msgstr "1. 选择字段类型"
 #: src/modules/settings/data-model/components/SettingsDataModelNewFieldBreadcrumbDropDown.tsx
 msgid "1. Type"
 msgstr "1. 类型"
+
+#. js-lingui-id: AvXug3
+#: src/pages/onboarding/ChooseYourPlan.tsx
+msgid "10 000 workflow node executions"
+msgstr ""
 
 #. js-lingui-id: 4EdXYs
 #: src/pages/settings/profile/appearance/components/DateTimeSettingsTimeFormatSelect.tsx
@@ -129,6 +134,11 @@ msgstr "2. 配置"
 #: src/pages/settings/data-model/SettingsObjectNewField/SettingsObjectNewFieldConfigure.tsx
 msgid "2. Configure field"
 msgstr "2. 配置字段"
+
+#. js-lingui-id: kAtmAv
+#: src/pages/onboarding/ChooseYourPlan.tsx
+msgid "20 000 workflow node executions"
+msgstr ""
 
 #. js-lingui-id: QsMprd
 #: src/pages/settings/profile/appearance/components/DateTimeSettingsTimeFormatSelect.tsx
@@ -232,7 +242,7 @@ msgid "Add Approved Access Domain"
 msgstr "添加批准的访问域"
 
 #. js-lingui-id: DpV70M
-#: src/modules/workflow/workflow-steps/workflow-actions/form-action/components/WorkflowEditActionForm.tsx
+#: src/modules/workflow/workflow-steps/workflow-actions/form-action/components/WorkflowEditActionFormBuilder.tsx
 #: src/modules/settings/data-model/object-details/components/tabs/ObjectFields.tsx
 msgid "Add Field"
 msgstr "添加字段"
@@ -432,6 +442,7 @@ msgid "API"
 msgstr "接口"
 
 #. js-lingui-id: 0RqpZr
+#: src/pages/onboarding/ChooseYourPlan.tsx
 #: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "API & Webhooks"
 msgstr "API 和 Webhooks"
@@ -1068,6 +1079,7 @@ msgstr "自定义域已更新"
 
 #. js-lingui-id: 8skTDV
 #: src/pages/onboarding/ChooseYourPlan.tsx
+#: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "Custom objects"
 msgstr "自定义对象"
 
@@ -1496,6 +1508,7 @@ msgid "Email cannot be empty"
 msgstr "电子邮件不能为空"
 
 #. js-lingui-id: lfQsvW
+#: src/pages/onboarding/ChooseYourPlan.tsx
 #: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "Email integration"
 msgstr "电子邮件集成"
@@ -1943,6 +1956,7 @@ msgid "from yearly to monthly"
 msgstr "从每年到每月"
 
 #. js-lingui-id: scmRyR
+#: src/pages/onboarding/ChooseYourPlan.tsx
 #: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "Full access"
 msgstr "完全访问"
@@ -2451,9 +2465,9 @@ msgid "Log out"
 msgstr "退出登录"
 
 #. js-lingui-id: nOhz3x
-#: src/modules/settings/hooks/useSettingsNavigationItems.tsx
-#~ msgid "Logout"
-#~ msgstr "Logout"
+#: src/modules/settings/components/SettingsNavigationDrawerItems.tsx
+msgid "Logout"
+msgstr "Logout"
 
 #. js-lingui-id: PTozs8
 #: src/modules/settings/admin-panel/components/SettingsAdminGeneral.tsx
@@ -3309,7 +3323,7 @@ msgid "Restore records"
 msgstr "恢复记录"
 
 #. js-lingui-id: kx0s+n
-#: src/modules/command-menu/hooks/useSearchRecords.tsx
+#: src/modules/command-menu/hooks/useCommandMenuSearchRecords.tsx
 msgid "Results"
 msgstr "结果"
 
@@ -3400,6 +3414,7 @@ msgstr "搜索索引..."
 #: src/modules/object-record/object-sort-dropdown/components/ObjectSortDropdownButton.tsx
 #: src/modules/object-record/object-options-dropdown/components/ObjectOptionsDropdownRecordGroupFieldsContent.tsx
 #: src/modules/object-record/object-filter-dropdown/components/ObjectFilterDropdownFilterSelect.tsx
+#: src/modules/object-record/advanced-filter/components/AdvancedFilterFieldSelectSearchInput.tsx
 msgid "Search fields"
 msgstr "搜索字段"
 
@@ -3657,6 +3672,11 @@ msgstr "西班牙语"
 msgid "SSO"
 msgstr "SSO"
 
+#. js-lingui-id: vlvAkg
+#: src/pages/onboarding/ChooseYourPlan.tsx
+msgid "SSO (SAML / OIDC)"
+msgstr ""
+
 #. js-lingui-id: ErU1td
 #: src/modules/views/view-picker/components/ViewPickerContentCreateMode.tsx
 msgid "Stages"
@@ -3745,6 +3765,11 @@ msgstr "切换 {to}"
 #: src/pages/settings/SettingsBilling.tsx
 msgid "Switch billing {to}"
 msgstr "切换计费 {to}"
+
+#. js-lingui-id: lz+f/E
+#: src/pages/onboarding/ChooseYourPlan.tsx
+msgid "Switch to {alternatePlanName}"
+msgstr ""
 
 #. js-lingui-id: 5TRY4+
 #: src/modules/settings/accounts/components/SettingsAccountsConnectedAccountsRowRightContainer.tsx
@@ -4028,6 +4053,7 @@ msgid "Unknown error"
 msgstr "未知错误"
 
 #. js-lingui-id: GQCXQS
+#: src/pages/onboarding/ChooseYourPlan.tsx
 #: src/pages/onboarding/ChooseYourPlan.tsx
 msgid "Unlimited contacts"
 msgstr "无限联系人"
