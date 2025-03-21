@@ -1,14 +1,25 @@
+import { ROLE_FRAGMENT } from '@/settings/roles/graphql/fragments/roleFragment';
+import { WORKSPACE_MEMBER_QUERY_FRAGMENT } from '@/workspace-member/graphql/fragments/workspaceMemberQueryFragment';
 import { gql } from '@apollo/client';
 
 export const USER_QUERY_FRAGMENT = gql`
+  ${ROLE_FRAGMENT}
   fragment UserQueryFragment on User {
     id
     firstName
     lastName
     email
+    canAccessFullAdminPanel
     canImpersonate
     supportUserHash
-    analyticsTinybirdJwt
+    analyticsTinybirdJwts {
+      getWebhookAnalytics
+      getPageviewsAnalytics
+      getUsersAnalytics
+      getServerlessFunctionDuration
+      getServerlessFunctionSuccessRate
+      getServerlessFunctionErrorCount
+    }
     onboardingStatus
     workspaceMember {
       ...WorkspaceMemberQueryFragment
@@ -16,16 +27,29 @@ export const USER_QUERY_FRAGMENT = gql`
     workspaceMembers {
       ...WorkspaceMemberQueryFragment
     }
-    defaultWorkspace {
+    currentUserWorkspace {
+      settingsPermissions
+      objectRecordsPermissions
+    }
+    currentWorkspace {
       id
       displayName
       logo
-      domainName
       inviteHash
       allowImpersonation
       activationStatus
       isPublicInviteLinkEnabled
-      hasValidEntrepriseKey
+      isGoogleAuthEnabled
+      isMicrosoftAuthEnabled
+      isPasswordAuthEnabled
+      subdomain
+      hasValidEnterpriseKey
+      customDomain
+      isCustomDomainEnabled
+      workspaceUrls {
+        subdomainUrl
+        customUrl
+      }
       featureFlags {
         id
         key
@@ -38,16 +62,30 @@ export const USER_QUERY_FRAGMENT = gql`
         status
         interval
       }
+      billingSubscriptions {
+        id
+        status
+      }
       workspaceMembersCount
+      defaultRole {
+        ...RoleFragment
+      }
     }
     workspaces {
       workspace {
         id
         logo
         displayName
-        domainName
+        subdomain
+        customDomain
+        workspaceUrls {
+          subdomainUrl
+          customUrl
+        }
       }
     }
     userVars
   }
+
+  ${WORKSPACE_MEMBER_QUERY_FRAGMENT}
 `;

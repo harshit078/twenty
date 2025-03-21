@@ -1,16 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import console from 'console';
-
+import { i18n } from '@lingui/core';
 import { Query, QueryOptions } from '@ptc-org/nestjs-query-core';
 import { TypeOrmQueryService } from '@ptc-org/nestjs-query-typeorm';
 import { isDefined } from 'class-validator';
+import { APP_LOCALES } from 'twenty-shared';
 import { FindManyOptions, FindOneOptions, In, Not, Repository } from 'typeorm';
 
+import { ObjectMetadataStandardIdToIdMap } from 'src/engine/metadata-modules/object-metadata/interfaces/object-metadata-standard-id-to-id-map';
+
+import { generateMessageId } from 'src/engine/core-modules/i18n/utils/generateMessageId';
 import { DataSourceService } from 'src/engine/metadata-modules/data-source/data-source.service';
 import { FieldMetadataEntity } from 'src/engine/metadata-modules/field-metadata/field-metadata.entity';
+import { IndexMetadataService } from 'src/engine/metadata-modules/index-metadata/index-metadata.service';
 import { DeleteOneObjectInput } from 'src/engine/metadata-modules/object-metadata/dtos/delete-object.input';
+import { ObjectMetadataDTO } from 'src/engine/metadata-modules/object-metadata/dtos/object-metadata.dto';
 import { UpdateOneObjectInput } from 'src/engine/metadata-modules/object-metadata/dtos/update-object.input';
 import {
   ObjectMetadataException,
@@ -21,16 +26,17 @@ import { ObjectMetadataRelatedRecordsService } from 'src/engine/metadata-modules
 import { ObjectMetadataRelationService } from 'src/engine/metadata-modules/object-metadata/services/object-metadata-relation.service';
 import { buildDefaultFieldsForCustomObject } from 'src/engine/metadata-modules/object-metadata/utils/build-default-fields-for-custom-object.util';
 import {
-  validateNameAndLabelAreSyncOrThrow,
-  validateNameSingularAndNamePluralAreDifferentOrThrow,
-  validateObjectMetadataInputOrThrow,
+  validateLowerCasedAndTrimmedStringsAreDifferentOrThrow,
+  validateObjectMetadataInputLabelsOrThrow,
+  validateObjectMetadataInputNamesOrThrow,
 } from 'src/engine/metadata-modules/object-metadata/utils/validate-object-metadata-input.util';
 import { RemoteTableRelationsService } from 'src/engine/metadata-modules/remote-server/remote-table/remote-table-relations/remote-table-relations.service';
-import { mapUdtNameToFieldType } from 'src/engine/metadata-modules/remote-server/remote-table/utils/udt-name-mapper.util';
 import { SearchService } from 'src/engine/metadata-modules/search/search.service';
+import { validateNameAndLabelAreSyncOrThrow } from 'src/engine/metadata-modules/utils/validate-name-and-label-are-sync-or-throw.util';
 import { WorkspaceMetadataVersionService } from 'src/engine/metadata-modules/workspace-metadata-version/services/workspace-metadata-version.service';
 import { computeObjectTargetTable } from 'src/engine/utils/compute-object-target-table.util';
 import { WorkspaceMigrationRunnerService } from 'src/engine/workspace-manager/workspace-migration-runner/workspace-migration-runner.service';
+import { CUSTOM_OBJECT_STANDARD_FIELD_IDS } from 'src/engine/workspace-manager/workspace-sync-metadata/constants/standard-field-ids';
 import { isSearchableFieldType } from 'src/engine/workspace-manager/workspace-sync-metadata/utils/is-searchable-field.util';
 
 import { ObjectMetadataEntity } from './object-metadata.entity';
@@ -54,6 +60,7 @@ export class ObjectMetadataService extends TypeOrmQueryService<ObjectMetadataEnt
     private readonly objectMetadataRelationService: ObjectMetadataRelationService,
     private readonly objectMetadataMigrationService: ObjectMetadataMigrationService,
     private readonly objectMetadataRelatedRecordsService: ObjectMetadataRelatedRecordsService,
+    private readonly indexMetadataService: IndexMetadataService,
   ) {
     super(objectMetadataRepository);
   }
@@ -68,6 +75,7 @@ export class ObjectMetadataService extends TypeOrmQueryService<ObjectMetadataEnt
 
     const end = performance.now();
 
+    // eslint-disable-next-line no-console
     console.log(`metadata query time: ${end - start} ms`);
 
     return result;
@@ -81,12 +89,24 @@ export class ObjectMetadataService extends TypeOrmQueryService<ObjectMetadataEnt
         objectMetadataInput.workspaceId,
       );
 
-    validateObjectMetadataInputOrThrow(objectMetadataInput);
+    validateObjectMetadataInputNamesOrThrow(objectMetadataInput);
+    validateObjectMetadataInputLabelsOrThrow(objectMetadataInput);
 
-    validateNameSingularAndNamePluralAreDifferentOrThrow(
-      objectMetadataInput.nameSingular,
-      objectMetadataInput.namePlural,
-    );
+    validateLowerCasedAndTrimmedStringsAreDifferentOrThrow({
+      inputs: [
+        objectMetadataInput.nameSingular,
+        objectMetadataInput.namePlural,
+      ],
+      message: 'The singular and plural names cannot be the same for an object',
+    });
+    validateLowerCasedAndTrimmedStringsAreDifferentOrThrow({
+      inputs: [
+        objectMetadataInput.labelPlural,
+        objectMetadataInput.labelSingular,
+      ],
+      message:
+        'The singular and plural labels cannot be the same for an object',
+    });
 
     if (objectMetadataInput.isLabelSyncedWithName === true) {
       validateNameAndLabelAreSyncOrThrow(
@@ -99,7 +119,7 @@ export class ObjectMetadataService extends TypeOrmQueryService<ObjectMetadataEnt
       );
     }
 
-    this.validatesNoOtherObjectWithSameNameExistsOrThrows({
+    await this.validatesNoOtherObjectWithSameNameExistsOrThrows({
       objectMetadataNamePlural: objectMetadataInput.namePlural,
       objectMetadataNameSingular: objectMetadataInput.nameSingular,
       workspaceId: objectMetadataInput.workspaceId,
@@ -113,9 +133,25 @@ export class ObjectMetadataService extends TypeOrmQueryService<ObjectMetadataEnt
       isCustom: !objectMetadataInput.isRemote,
       isSystem: false,
       isRemote: objectMetadataInput.isRemote,
+      isSearchable: !objectMetadataInput.isRemote,
       fields: objectMetadataInput.isRemote
         ? []
         : buildDefaultFieldsForCustomObject(objectMetadataInput.workspaceId),
+    });
+
+    const labelIdentifierFieldMetadata = createdObjectMetadata.fields.find(
+      (field) => field.standardId === CUSTOM_OBJECT_STANDARD_FIELD_IDS.name,
+    );
+
+    if (!labelIdentifierFieldMetadata) {
+      throw new ObjectMetadataException(
+        'Label identifier field metadata not created properly',
+        ObjectMetadataExceptionCode.MISSING_CUSTOM_OBJECT_DEFAULT_LABEL_IDENTIFIER_FIELD,
+      );
+    }
+
+    await this.objectMetadataRepository.update(createdObjectMetadata.id, {
+      labelIdentifierFieldMetadataId: labelIdentifierFieldMetadata.id,
     });
 
     if (objectMetadataInput.isRemote) {
@@ -126,18 +162,29 @@ export class ObjectMetadataService extends TypeOrmQueryService<ObjectMetadataEnt
         objectMetadataInput.primaryKeyColumnType,
       );
     } else {
-      await this.objectMetadataMigrationService.createObjectMigration(
+      await this.objectMetadataMigrationService.createTableMigration(
         createdObjectMetadata,
       );
 
-      await this.objectMetadataMigrationService.createFieldMigrations(
+      await this.objectMetadataMigrationService.createColumnsMigrations(
         createdObjectMetadata,
         createdObjectMetadata.fields,
       );
 
-      await this.createRelationsMetadataAndMigrations(
-        objectMetadataInput,
+      const createdRelatedObjectMetadataCollection =
+        await this.objectMetadataRelationService.createRelationsAndForeignKeysMetadata(
+          objectMetadataInput.workspaceId,
+          createdObjectMetadata,
+          {
+            primaryKeyFieldMetadataSettings:
+              objectMetadataInput.primaryKeyFieldMetadataSettings,
+            primaryKeyColumnType: objectMetadataInput.primaryKeyColumnType,
+          },
+        );
+
+      await this.objectMetadataMigrationService.createRelationMigrations(
         createdObjectMetadata,
+        createdRelatedObjectMetadataCollection,
       );
 
       await this.searchService.createSearchVectorFieldForObject(
@@ -165,7 +212,7 @@ export class ObjectMetadataService extends TypeOrmQueryService<ObjectMetadataEnt
     input: UpdateOneObjectInput,
     workspaceId: string,
   ): Promise<ObjectMetadataEntity> {
-    validateObjectMetadataInputOrThrow(input.update);
+    validateObjectMetadataInputNamesOrThrow(input.update);
 
     const existingObjectMetadata = await this.objectMetadataRepository.findOne({
       where: { id: input.id, workspaceId: workspaceId },
@@ -178,26 +225,29 @@ export class ObjectMetadataService extends TypeOrmQueryService<ObjectMetadataEnt
       );
     }
 
-    const fullObjectMetadataAfterUpdate = {
+    const existingObjectMetadataCombinedWithUpdateInput = {
       ...existingObjectMetadata,
       ...input.update,
     };
 
     await this.validatesNoOtherObjectWithSameNameExistsOrThrows({
-      objectMetadataNameSingular: fullObjectMetadataAfterUpdate.nameSingular,
-      objectMetadataNamePlural: fullObjectMetadataAfterUpdate.namePlural,
+      objectMetadataNameSingular:
+        existingObjectMetadataCombinedWithUpdateInput.nameSingular,
+      objectMetadataNamePlural:
+        existingObjectMetadataCombinedWithUpdateInput.namePlural,
       workspaceId: workspaceId,
-      existingObjectMetadataId: fullObjectMetadataAfterUpdate.id,
+      existingObjectMetadataId:
+        existingObjectMetadataCombinedWithUpdateInput.id,
     });
 
-    if (fullObjectMetadataAfterUpdate.isLabelSyncedWithName) {
+    if (existingObjectMetadataCombinedWithUpdateInput.isLabelSyncedWithName) {
       validateNameAndLabelAreSyncOrThrow(
-        fullObjectMetadataAfterUpdate.labelSingular,
-        fullObjectMetadataAfterUpdate.nameSingular,
+        existingObjectMetadataCombinedWithUpdateInput.labelSingular,
+        existingObjectMetadataCombinedWithUpdateInput.nameSingular,
       );
       validateNameAndLabelAreSyncOrThrow(
-        fullObjectMetadataAfterUpdate.labelPlural,
-        fullObjectMetadataAfterUpdate.namePlural,
+        existingObjectMetadataCombinedWithUpdateInput.labelPlural,
+        existingObjectMetadataCombinedWithUpdateInput.namePlural,
       );
     }
 
@@ -205,22 +255,26 @@ export class ObjectMetadataService extends TypeOrmQueryService<ObjectMetadataEnt
       isDefined(input.update.nameSingular) ||
       isDefined(input.update.namePlural)
     ) {
-      validateNameSingularAndNamePluralAreDifferentOrThrow(
-        fullObjectMetadataAfterUpdate.nameSingular,
-        fullObjectMetadataAfterUpdate.namePlural,
-      );
+      validateLowerCasedAndTrimmedStringsAreDifferentOrThrow({
+        inputs: [
+          existingObjectMetadataCombinedWithUpdateInput.nameSingular,
+          existingObjectMetadataCombinedWithUpdateInput.namePlural,
+        ],
+        message:
+          'The singular and plural names cannot be the same for an object',
+      });
     }
 
     const updatedObject = await super.updateOne(input.id, input.update);
 
     await this.handleObjectNameAndLabelUpdates(
       existingObjectMetadata,
-      fullObjectMetadataAfterUpdate,
+      existingObjectMetadataCombinedWithUpdateInput,
       input,
     );
 
     if (input.update.isActive !== undefined) {
-      await this.objectMetadataRelationService.updateObjectRelationships(
+      await this.objectMetadataRelationService.updateObjectRelationshipsActivationStatus(
         input.id,
         input.update.isActive,
       );
@@ -375,41 +429,26 @@ export class ObjectMetadataService extends TypeOrmQueryService<ObjectMetadataEnt
 
   public async deleteObjectsMetadata(workspaceId: string) {
     await this.objectMetadataRepository.delete({ workspaceId });
-    await this.workspaceMetadataVersionService.incrementMetadataVersion(
-      workspaceId,
-    );
   }
 
-  private async createRelationsMetadataAndMigrations(
-    objectMetadataInput: CreateObjectInput,
-    createdObjectMetadata: ObjectMetadataEntity,
-  ) {
-    const relatedObjectTypes = [
-      'timelineActivity',
-      'favorite',
-      'attachment',
-      'noteTarget',
-      'taskTarget',
-    ];
+  public async getObjectMetadataStandardIdToIdMap(workspaceId: string) {
+    const objectMetadata = await this.findManyWithinWorkspace(workspaceId);
 
-    const createdRelatedObjectMetadata = await Promise.all(
-      relatedObjectTypes.map(async (relationType) =>
-        this.objectMetadataRelationService.createMetadata(
-          objectMetadataInput.workspaceId,
-          createdObjectMetadata,
-          mapUdtNameToFieldType(
-            objectMetadataInput.primaryKeyColumnType ?? 'uuid',
-          ),
-          objectMetadataInput.primaryKeyFieldMetadataSettings,
-          relationType,
-        ),
-      ),
-    );
+    const objectMetadataStandardIdToIdMap =
+      objectMetadata.reduce<ObjectMetadataStandardIdToIdMap>((acc, object) => {
+        acc[object.standardId ?? ''] = {
+          id: object.id,
+          fields: object.fields.reduce((acc, field) => {
+            acc[field.standardId ?? ''] = field.id;
 
-    await this.objectMetadataMigrationService.createRelationMigrations(
-      createdObjectMetadata,
-      createdRelatedObjectMetadata,
-    );
+            return acc;
+          }, {}),
+        };
+
+        return acc;
+      }, {});
+
+    return { objectMetadataStandardIdToIdMap };
   }
 
   private async handleObjectNameAndLabelUpdates(
@@ -424,24 +463,47 @@ export class ObjectMetadataService extends TypeOrmQueryService<ObjectMetadataEnt
       existingObjectMetadata,
     );
 
-    if (!(newTargetTableName === existingTargetTableName)) {
+    if (newTargetTableName !== existingTargetTableName) {
       await this.objectMetadataMigrationService.createRenameTableMigration(
         existingObjectMetadata,
         objectMetadataForUpdate,
         objectMetadataForUpdate.workspaceId,
       );
 
-      await this.objectMetadataMigrationService.createRelationsUpdatesMigrations(
+      const relationsAndForeignKeysMetadata =
+        await this.objectMetadataRelationService.updateRelationsAndForeignKeysMetadata(
+          objectMetadataForUpdate.workspaceId,
+          objectMetadataForUpdate,
+        );
+
+      await this.objectMetadataMigrationService.createUpdateForeignKeysMigrations(
         existingObjectMetadata,
+        objectMetadataForUpdate,
+        relationsAndForeignKeysMetadata,
+        objectMetadataForUpdate.workspaceId,
+      );
+
+      await this.objectMetadataMigrationService.recomputeEnumNames(
         objectMetadataForUpdate,
         objectMetadataForUpdate.workspaceId,
       );
-    }
 
-    if (input.update.labelPlural || input.update.icon) {
+      const recomputedIndexes =
+        await this.indexMetadataService.recomputeIndexMetadataForObject(
+          objectMetadataForUpdate.workspaceId,
+          objectMetadataForUpdate,
+        );
+
+      await this.indexMetadataService.createIndexRecomputeMigrations(
+        objectMetadataForUpdate.workspaceId,
+        objectMetadataForUpdate,
+        recomputedIndexes,
+      );
+
       if (
-        !(input.update.labelPlural === existingObjectMetadata.labelPlural) ||
-        !(input.update.icon === existingObjectMetadata.icon)
+        (input.update.labelPlural || input.update.icon) &&
+        (input.update.labelPlural !== existingObjectMetadata.labelPlural ||
+          input.update.icon !== existingObjectMetadata.icon)
       ) {
         await this.objectMetadataRelatedRecordsService.updateObjectViews(
           objectMetadataForUpdate,
@@ -489,4 +551,27 @@ export class ObjectMetadataService extends TypeOrmQueryService<ObjectMetadataEnt
       );
     }
   };
+
+  async resolveTranslatableString(
+    objectMetadata: ObjectMetadataDTO,
+    labelKey: 'labelPlural' | 'labelSingular' | 'description',
+    locale: keyof typeof APP_LOCALES | undefined,
+  ): Promise<string> {
+    if (objectMetadata.isCustom) {
+      return objectMetadata[labelKey];
+    }
+
+    if (!locale) {
+      return objectMetadata[labelKey];
+    }
+
+    const messageId = generateMessageId(objectMetadata[labelKey] ?? '');
+    const translatedMessage = i18n._(messageId);
+
+    if (translatedMessage === messageId) {
+      return objectMetadata[labelKey] ?? '';
+    }
+
+    return translatedMessage;
+  }
 }

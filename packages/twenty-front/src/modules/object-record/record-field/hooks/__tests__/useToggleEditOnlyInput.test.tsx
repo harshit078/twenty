@@ -75,7 +75,8 @@ const mocks: MockedResponse[] = [
                   noteId
                   opportunityId
                   personId
-                  rocketId
+                  petId
+                  surveyResultId
                   taskId
                   type
                   updatedAt
@@ -87,6 +88,7 @@ const mocks: MockedResponse[] = [
               source
               workspaceMemberId
               name
+              context
             }
             deletedAt
             domainName {
@@ -102,19 +104,21 @@ const mocks: MockedResponse[] = [
                   companyId
                   createdAt
                   deletedAt
+                  favoriteFolderId
+                  forWorkspaceMemberId
                   id
                   noteId
                   opportunityId
                   personId
+                  petId
                   position
-                  rocketId
+                  surveyResultId
                   taskId
                   updatedAt
                   viewId
                   workflowId
                   workflowRunId
                   workflowVersionId
-                  workspaceMemberId
                 }
               }
             }
@@ -142,7 +146,8 @@ const mocks: MockedResponse[] = [
                   noteId
                   opportunityId
                   personId
-                  rocketId
+                  petId
+                  surveyResultId
                   updatedAt
                 }
               }
@@ -162,6 +167,7 @@ const mocks: MockedResponse[] = [
                     source
                     workspaceMemberId
                     name
+                    context
                   }
                   deletedAt
                   id
@@ -185,6 +191,7 @@ const mocks: MockedResponse[] = [
                     source
                     workspaceMemberId
                     name
+                    context
                   }
                   deletedAt
                   emails {
@@ -207,6 +214,7 @@ const mocks: MockedResponse[] = [
                   phones {
                     primaryPhoneNumber
                     primaryPhoneCountryCode
+                    primaryPhoneCallingCode
                     additionalPhones
                   }
                   position
@@ -214,6 +222,7 @@ const mocks: MockedResponse[] = [
                   whatsapp {
                     primaryPhoneNumber
                     primaryPhoneCountryCode
+                    primaryPhoneCallingCode
                     additionalPhones
                   }
                   workPreference
@@ -237,7 +246,8 @@ const mocks: MockedResponse[] = [
                   id
                   opportunityId
                   personId
-                  rocketId
+                  petId
+                  surveyResultId
                   taskId
                   updatedAt
                 }
@@ -259,8 +269,9 @@ const mocks: MockedResponse[] = [
                   noteId
                   opportunityId
                   personId
+                  petId
                   properties
-                  rocketId
+                  surveyResultId
                   taskId
                   updatedAt
                   workflowId

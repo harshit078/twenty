@@ -1,58 +1,32 @@
-import { useRecoilValue } from 'recoil';
-import { useIcons } from 'twenty-ui';
-
+import { RecordIndexActionMenu } from '@/action-menu/components/RecordIndexActionMenu';
 import { useFilteredObjectMetadataItems } from '@/object-metadata/hooks/useFilteredObjectMetadataItems';
-import { isObjectMetadataReadOnly } from '@/object-metadata/utils/isObjectMetadataReadOnly';
-import { RecordIndexPageKanbanAddButton } from '@/object-record/record-index/components/RecordIndexPageKanbanAddButton';
-import { RecordIndexRootPropsContext } from '@/object-record/record-index/contexts/RecordIndexRootPropsContext';
-import { recordIndexViewTypeState } from '@/object-record/record-index/states/recordIndexViewTypeState';
-import { PageAddButton } from '@/ui/layout/page/components/PageAddButton';
+import { useRecordIndexContextOrThrow } from '@/object-record/record-index/contexts/RecordIndexContext';
+import { PageHeaderOpenCommandMenuButton } from '@/ui/layout/page-header/components/PageHeaderOpenCommandMenuButton';
 import { PageHeader } from '@/ui/layout/page/components/PageHeader';
-import { PageHotkeysEffect } from '@/ui/layout/page/components/PageHotkeysEffect';
-import { ViewType } from '@/views/types/ViewType';
-import { useContext } from 'react';
-import { capitalize } from '~/utils/string/capitalize';
+import { capitalize } from 'twenty-shared';
+import { useIcons } from 'twenty-ui';
 
 export const RecordIndexPageHeader = () => {
   const { findObjectMetadataItemByNamePlural } =
     useFilteredObjectMetadataItems();
 
-  const { objectNamePlural, onCreateRecord } = useContext(
-    RecordIndexRootPropsContext,
-  );
+  const { objectNamePlural } = useRecordIndexContextOrThrow();
 
   const objectMetadataItem =
     findObjectMetadataItemByNamePlural(objectNamePlural);
 
   const { getIcon } = useIcons();
-  const Icon = getIcon(
-    findObjectMetadataItemByNamePlural(objectNamePlural)?.icon,
-  );
+  const Icon = getIcon(objectMetadataItem?.icon);
 
-  const recordIndexViewType = useRecoilValue(recordIndexViewTypeState);
-
-  const shouldDisplayAddButton = objectMetadataItem
-    ? !isObjectMetadataReadOnly(objectMetadataItem)
-    : false;
-
-  const isTable = recordIndexViewType === ViewType.Table;
+  const { recordIndexId } = useRecordIndexContextOrThrow();
 
   const pageHeaderTitle =
     objectMetadataItem?.labelPlural ?? capitalize(objectNamePlural);
 
-  const handleAddButtonClick = () => {
-    onCreateRecord();
-  };
-
   return (
     <PageHeader title={pageHeaderTitle} Icon={Icon}>
-      <PageHotkeysEffect onAddButtonClick={handleAddButtonClick} />
-      {shouldDisplayAddButton &&
-        (isTable ? (
-          <PageAddButton onClick={handleAddButtonClick} />
-        ) : (
-          <RecordIndexPageKanbanAddButton />
-        ))}
+      <RecordIndexActionMenu indexId={recordIndexId} />
+      <PageHeaderOpenCommandMenuButton />
     </PageHeader>
   );
 };

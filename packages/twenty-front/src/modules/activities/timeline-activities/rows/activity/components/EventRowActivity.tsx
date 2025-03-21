@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import { useOpenActivityRightDrawer } from '@/activities/hooks/useOpenActivityRightDrawer';
 import {
   EventRowDynamicComponentProps,
   StyledEventRowItemAction,
   StyledEventRowItemColumn,
 } from '@/activities/timeline-activities/rows/components/EventRowDynamicComponent';
+import { useOpenRecordInCommandMenu } from '@/command-menu/hooks/useOpenRecordInCommandMenu';
 import { CoreObjectNameSingular } from '@/object-metadata/types/CoreObjectNameSingular';
 import { useGetRecordFromCache } from '@/object-record/cache/hooks/useGetRecordFromCache';
 import { isNonEmptyString } from '@sniptt/guards';
@@ -16,6 +16,10 @@ const StyledLinkedActivity = styled.span`
   color: ${({ theme }) => theme.font.color.primary};
   cursor: pointer;
   text-decoration: underline;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 export const StyledEventRowItemText = styled.span`
@@ -51,9 +55,7 @@ export const EventRowActivity = ({
       ? event.linkedRecordCachedName
       : 'Untitled';
 
-  const openActivityRightDrawer = useOpenActivityRightDrawer({
-    objectNameSingular,
-  });
+  const { openRecordInCommandMenu } = useOpenRecordInCommandMenu();
 
   return (
     <>
@@ -62,7 +64,12 @@ export const EventRowActivity = ({
         {`${eventAction} a related ${eventObject}`}
       </StyledEventRowItemAction>
       <StyledLinkedActivity
-        onClick={() => openActivityRightDrawer(event.linkedRecordId)}
+        onClick={() =>
+          openRecordInCommandMenu({
+            recordId: event.linkedRecordId,
+            objectNameSingular,
+          })
+        }
       >
         {activityTitle}
       </StyledLinkedActivity>

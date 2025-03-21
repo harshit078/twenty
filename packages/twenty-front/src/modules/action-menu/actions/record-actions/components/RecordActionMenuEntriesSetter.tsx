@@ -1,69 +1,90 @@
-import { DeleteRecordsActionEffect } from '@/action-menu/actions/record-actions/components/DeleteRecordsActionEffect';
-import { ExportRecordsActionEffect } from '@/action-menu/actions/record-actions/components/ExportRecordsActionEffect';
-import { ManageFavoritesActionEffect } from '@/action-menu/actions/record-actions/components/ManageFavoritesActionEffect';
-import { WorkflowRunRecordActionEffect } from '@/action-menu/actions/record-actions/workflow-run-record-actions/components/WorkflowRunRecordActionEffect';
-import { contextStoreCurrentObjectMetadataIdComponentState } from '@/context-store/states/contextStoreCurrentObjectMetadataIdComponentState';
-import { contextStoreNumberOfSelectedRecordsComponentState } from '@/context-store/states/contextStoreNumberOfSelectedRecordsComponentState';
-import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
+import { RegisterRecordActionEffect } from '@/action-menu/actions/record-actions/components/RegisterRecordActionEffect';
+import { WorkflowRunRecordActionMenuEntrySetterEffect } from '@/action-menu/actions/record-actions/workflow-run-record-actions/components/WorkflowRunRecordActionMenuEntrySetter';
+import { getActionConfig } from '@/action-menu/actions/utils/getActionConfig';
+import { getActionViewType } from '@/action-menu/actions/utils/getActionViewType';
+import { MAIN_CONTEXT_STORE_INSTANCE_ID } from '@/context-store/constants/MainContextStoreInstanceId';
+import { contextStoreCurrentObjectMetadataItemIdComponentState } from '@/context-store/states/contextStoreCurrentObjectMetadataItemIdComponentState';
+import { contextStoreCurrentViewTypeComponentState } from '@/context-store/states/contextStoreCurrentViewTypeComponentState';
+import { contextStoreTargetedRecordsRuleComponentState } from '@/context-store/states/contextStoreTargetedRecordsRuleComponentState';
+import { objectMetadataItemsState } from '@/object-metadata/states/objectMetadataItemsState';
 import { useRecoilComponentValueV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValueV2';
 import { useIsFeatureEnabled } from '@/workspace/hooks/useIsFeatureEnabled';
-
-const globalRecordActionEffects = [ExportRecordsActionEffect];
-
-const singleRecordActionEffects = [
-  ManageFavoritesActionEffect,
-  DeleteRecordsActionEffect,
-];
-
-const multipleRecordActionEffects = [DeleteRecordsActionEffect];
+import { useRecoilValue } from 'recoil';
+import { isDefined } from 'twenty-shared';
+import { FeatureFlagKey } from '~/generated/graphql';
 
 export const RecordActionMenuEntriesSetter = () => {
-  const contextStoreNumberOfSelectedRecords = useRecoilComponentValueV2(
-    contextStoreNumberOfSelectedRecordsComponentState,
-  );
-
-  const contextStoreCurrentObjectMetadataId = useRecoilComponentValueV2(
-    contextStoreCurrentObjectMetadataIdComponentState,
-  );
-
-  const { objectMetadataItem } = useObjectMetadataItemById({
-    objectId: contextStoreCurrentObjectMetadataId ?? '',
-  });
-
-  const isWorkflowEnabled = useIsFeatureEnabled('IS_WORKFLOW_ENABLED');
-
-  if (!objectMetadataItem) {
-    throw new Error(
-      `Object metadata item not found for id ${contextStoreCurrentObjectMetadataId}`,
+  const localContextStoreCurrentObjectMetadataItemId =
+    useRecoilComponentValueV2(
+      contextStoreCurrentObjectMetadataItemIdComponentState,
     );
+
+  const mainContextStoreCurrentObjectMetadataItemId = useRecoilComponentValueV2(
+    contextStoreCurrentObjectMetadataItemIdComponentState,
+    MAIN_CONTEXT_STORE_INSTANCE_ID,
+  );
+
+  const objectMetadataItems = useRecoilValue(objectMetadataItemsState);
+
+  const localContextStoreObjectMetadataItem = objectMetadataItems.find(
+    (objectMetadataItem) =>
+      objectMetadataItem.id === localContextStoreCurrentObjectMetadataItemId,
+  );
+
+  const mainContextStoreObjectMetadataItem = objectMetadataItems.find(
+    (objectMetadataItem) =>
+      objectMetadataItem.id === mainContextStoreCurrentObjectMetadataItemId,
+  );
+
+  const objectMetadataItem =
+    localContextStoreObjectMetadataItem ?? mainContextStoreObjectMetadataItem;
+
+  const contextStoreTargetedRecordsRule = useRecoilComponentValueV2(
+    contextStoreTargetedRecordsRuleComponentState,
+  );
+
+  const contextStoreCurrentViewType = useRecoilComponentValueV2(
+    contextStoreCurrentViewTypeComponentState,
+  );
+
+  const isWorkflowEnabled = useIsFeatureEnabled(
+    FeatureFlagKey.IsWorkflowEnabled,
+  );
+
+  if (!isDefined(objectMetadataItem)) {
+    return null;
   }
 
-  const actions =
-    contextStoreNumberOfSelectedRecords === 1
-      ? singleRecordActionEffects
-      : multipleRecordActionEffects;
+  const viewType = getActionViewType(
+    contextStoreCurrentViewType,
+    contextStoreTargetedRecordsRule,
+  );
+
+  const actionConfig = getActionConfig(objectMetadataItem);
+
+  const actionsToRegister = isDefined(viewType)
+    ? Object.values(actionConfig ?? {}).filter((action) =>
+        action.availableOn?.includes(viewType),
+      )
+    : [];
 
   return (
     <>
-      {globalRecordActionEffects.map((ActionEffect, index) => (
-        <ActionEffect
-          key={index}
-          position={index}
+      {actionsToRegister.map((action) => (
+        <RegisterRecordActionEffect
+          key={action.key}
+          action={action}
           objectMetadataItem={objectMetadataItem}
         />
       ))}
-      {actions.map((ActionEffect, index) => (
-        <ActionEffect
-          key={index}
-          position={globalRecordActionEffects.length + index}
-          objectMetadataItem={objectMetadataItem}
-        />
-      ))}
-      {contextStoreNumberOfSelectedRecords === 1 && isWorkflowEnabled && (
-        <WorkflowRunRecordActionEffect
-          objectMetadataItem={objectMetadataItem}
-        />
-      )}
+
+      {isWorkflowEnabled &&
+        contextStoreTargetedRecordsRule?.mode === 'selection' &&
+        contextStoreTargetedRecordsRule?.selectedRecordIds.length === 1 && (
+          <WorkflowRunRecordActionMenuEntrySetterEffect
+            objectMetadataItem={objectMetadataItem}
+          />
+        )}
     </>
   );
 };

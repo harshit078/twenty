@@ -31,8 +31,18 @@ export class FieldMetadataDefaultValueString {
 
 export class FieldMetadataDefaultValueRawJson {
   @ValidateIf((_object, value) => value !== null)
-  @IsObject()
+  @IsObject() // TODO: Should this also allow arrays?
   value: object | null;
+}
+
+export class FieldMetadataDefaultValueRichTextV2 {
+  @ValidateIf((object, value) => value !== null)
+  @IsQuotedString()
+  blocknote: string | null;
+
+  @ValidateIf((object, value) => value !== null)
+  @IsQuotedString()
+  markdown: string | null;
 }
 
 export class FieldMetadataDefaultValueRichText {
@@ -40,6 +50,7 @@ export class FieldMetadataDefaultValueRichText {
   @IsString()
   value: string | null;
 }
+
 export class FieldMetadataDefaultValueNumber {
   @ValidateIf((object, value) => value !== null)
   @IsNumber()
@@ -137,6 +148,14 @@ export class FieldMetadataDefaultValueAddress {
   addressLng: number | null;
 }
 
+class LinkMetadata {
+  @IsString()
+  label: string;
+
+  @IsString()
+  url: string;
+}
+
 export class FieldMetadataDefaultValueLinks {
   @ValidateIf((_object, value) => value !== null)
   @IsQuotedString()
@@ -147,8 +166,8 @@ export class FieldMetadataDefaultValueLinks {
   primaryLinkUrl: string | null;
 
   @ValidateIf((_object, value) => value !== null)
-  @IsObject()
-  secondaryLinks: object | null;
+  @IsArray()
+  secondaryLinks: LinkMetadata[] | null;
 }
 
 export class FieldMetadataDefaultActor {
@@ -184,6 +203,10 @@ export class FieldMetadataDefaultValuePhones {
   @ValidateIf((_object, value) => value !== null)
   @IsQuotedString()
   primaryPhoneCountryCode: string | null;
+
+  @ValidateIf((_object, value) => value !== null)
+  @IsQuotedString()
+  primaryPhoneCallingCode: string | null;
 
   @ValidateIf((_object, value) => value !== null)
   @IsObject()

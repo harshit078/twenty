@@ -15,6 +15,7 @@ import { useDebouncedCallback } from 'use-debounce';
 import { TextInput } from '@/ui/input/components/TextInput';
 
 import { Modal, ModalVariants } from '@/ui/layout/modal/components/Modal';
+import { useLingui } from '@lingui/react/macro';
 
 export type ConfirmationModalProps = {
   isOpen: boolean;
@@ -23,7 +24,7 @@ export type ConfirmationModalProps = {
   subtitle: ReactNode;
   setIsOpen: (val: boolean) => void;
   onConfirmClick: () => void;
-  deleteButtonText?: string;
+  confirmButtonText?: string;
   confirmationPlaceholder?: string;
   confirmationValue?: string;
   confirmButtonAccent?: ButtonAccent;
@@ -69,13 +70,14 @@ export const ConfirmationModal = ({
   subtitle,
   setIsOpen,
   onConfirmClick,
-  deleteButtonText = 'Delete',
+  confirmButtonText = 'Confirm',
   confirmationValue,
   confirmationPlaceholder,
   confirmButtonAccent = 'danger',
   AdditionalButtons,
   modalVariant = 'primary',
 }: ConfirmationModalProps) => {
+  const { t } = useLingui();
   const [inputConfirmationValue, setInputConfirmationValue] =
     useState<string>('');
   const [isValidValue, setIsValidValue] = useState(!confirmationValue);
@@ -118,6 +120,7 @@ export const ConfirmationModal = ({
             isClosable={true}
             padding="large"
             modalVariant={modalVariant}
+            className="confirmation-modal"
           >
             <StyledCenteredTitle>
               <H1Title title={title} fontColor={H1TitleFontColor.Primary} />
@@ -142,9 +145,11 @@ export const ConfirmationModal = ({
               </Section>
             )}
             <StyledCenteredButton
-              onClick={() => setIsOpen(false)}
+              onClick={() => {
+                setIsOpen(false);
+              }}
               variant="secondary"
-              title="Cancel"
+              title={t`Cancel`}
               fullWidth
             />
 
@@ -154,7 +159,7 @@ export const ConfirmationModal = ({
               onClick={handleConfirmClick}
               variant="secondary"
               accent={confirmButtonAccent}
-              title={deleteButtonText}
+              title={confirmButtonText}
               disabled={!isValidValue || loading}
               fullWidth
               dataTestId="confirmation-modal-confirm-button"

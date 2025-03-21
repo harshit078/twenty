@@ -1,9 +1,9 @@
+import { FieldMetadataType } from 'twenty-shared';
+
 import {
   FieldMetadataSettings,
   NumberDataType,
 } from 'src/engine/metadata-modules/field-metadata/interfaces/field-metadata-settings.interface';
-
-import { FieldMetadataType } from 'src/engine/metadata-modules/field-metadata/field-metadata.entity';
 
 export const mapUdtNameToFieldType = (udtName: string): FieldMetadataType => {
   switch (udtName) {
@@ -37,12 +37,12 @@ export const mapUdtNameToFieldSettings = (
     case 'int4':
       return {
         dataType: NumberDataType.INT,
-      } satisfies FieldMetadataSettings<FieldMetadataType.NUMBER>;
+      } as FieldMetadataSettings<FieldMetadataType.NUMBER>;
     case 'int8':
     case 'bigint':
       return {
         dataType: NumberDataType.BIGINT,
-      } satisfies FieldMetadataSettings<FieldMetadataType.NUMBER>;
+      } as FieldMetadataSettings<FieldMetadataType.NUMBER>;
     default:
       return undefined;
   }

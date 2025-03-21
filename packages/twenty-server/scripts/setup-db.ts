@@ -25,6 +25,11 @@ rawDataSource
       'create extension "uuid-ossp"',
     );
 
+    // We paused the work on FDW
+    if (process.env.IS_FDW_ENABLED !== 'true') {
+      return;
+    }
+
     await performQuery(
       'CREATE EXTENSION IF NOT EXISTS "postgres_fdw"',
       'create extension "postgres_fdw"',
@@ -51,6 +56,9 @@ rawDataSource
     ]; // See https://supabase.github.io/wrappers/
 
     for (const wrapper of supabaseWrappers) {
+      if (await checkForeignDataWrapperExists(`${wrapper.toLowerCase()}_fdw`)) {
+        continue;
+      }
       await performQuery(
         `
           CREATE FOREIGN DATA WRAPPER "${wrapper.toLowerCase()}_fdw"
@@ -66,3 +74,14 @@ rawDataSource
   .catch((err) => {
     console.error('Error during Data Source initialization:', err);
   });
+
+async function checkForeignDataWrapperExists(
+  wrapperName: string,
+): Promise<boolean> {
+  const result = await rawDataSource.query(
+    `SELECT 1 FROM pg_foreign_data_wrapper WHERE fdwname = $1`,
+    [wrapperName],
+  );
+
+  return result.length > 0;
+}

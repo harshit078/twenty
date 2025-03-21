@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import { CustomResolverFetchMoreLoader } from '@/activities/components/CustomResolverFetchMoreLoader';
 import { SkeletonLoader } from '@/activities/components/SkeletonLoader';
 import { EventList } from '@/activities/timeline-activities/components/EventList';
-import { TimelineCreateButtonGroup } from '@/activities/timeline-activities/components/TimelineCreateButtonGroup';
 import { useTimelineActivities } from '@/activities/timeline-activities/hooks/useTimelineActivities';
 import { ActivityTargetableObject } from '@/activities/types/ActivityTargetableEntity';
 import { useIsMobile } from '@/ui/utilities/responsive/hooks/useIsMobile';
@@ -14,6 +13,7 @@ import {
   AnimatedPlaceholderEmptyTextContainer,
   AnimatedPlaceholderEmptyTitle,
   EMPTY_PLACEHOLDER_TRANSITION_PROPS,
+  MOBILE_VIEWPORT,
 } from 'twenty-ui';
 
 const StyledMainContainer = styled.div`
@@ -31,11 +31,23 @@ const StyledMainContainer = styled.div`
   padding-right: ${({ theme }) => theme.spacing(6)};
   padding-left: ${({ theme }) => theme.spacing(6)};
   gap: ${({ theme }) => theme.spacing(4)};
+
+  @media (max-width: ${MOBILE_VIEWPORT}px) {
+    padding-right: ${({ theme }) => theme.spacing(1)};
+    padding-left: ${({ theme }) => theme.spacing(1)};
+  }
+`;
+
+const StyledRightDrawerAnimatedPlaceholderEmptyContainer = styled(
+  AnimatedPlaceholderEmptyContainer,
+)`
+  height: auto;
+  padding-top: ${({ theme }) => theme.spacing(8)};
 `;
 
 export const TimelineActivities = ({
   targetableObject,
-  isInRightDrawer = false,
+  isInRightDrawer,
 }: {
   targetableObject: ActivityTargetableObject;
   isInRightDrawer?: boolean;
@@ -51,22 +63,25 @@ export const TimelineActivities = ({
   }
 
   if (isTimelineActivitiesEmpty) {
+    const EmptyContainer = isInRightDrawer
+      ? StyledRightDrawerAnimatedPlaceholderEmptyContainer
+      : AnimatedPlaceholderEmptyContainer;
+
     return (
-      <AnimatedPlaceholderEmptyContainer
+      <EmptyContainer
         // eslint-disable-next-line react/jsx-props-no-spreading
         {...EMPTY_PLACEHOLDER_TRANSITION_PROPS}
       >
         <AnimatedPlaceholder type="emptyTimeline" />
         <AnimatedPlaceholderEmptyTextContainer>
           <AnimatedPlaceholderEmptyTitle>
-            Add your first Activity
+            No activity yet
           </AnimatedPlaceholderEmptyTitle>
           <AnimatedPlaceholderEmptySubTitle>
-            There are no activities associated with this record.{' '}
+            There is no activity associated with this record.
           </AnimatedPlaceholderEmptySubTitle>
         </AnimatedPlaceholderEmptyTextContainer>
-        <TimelineCreateButtonGroup isInRightDrawer={isInRightDrawer} />
-      </AnimatedPlaceholderEmptyContainer>
+      </EmptyContainer>
     );
   }
 

@@ -1,21 +1,21 @@
 import { useGetStandardObjectIcon } from '@/object-metadata/hooks/useGetStandardObjectIcon';
 import { CoreObjectNameSingular } from '@/object-metadata/types/CoreObjectNameSingular';
 import { FieldContext } from '@/object-record/record-field/contexts/FieldContext';
-import { RecordInlineCell } from '@/object-record/record-inline-cell/components/RecordInlineCell';
 import { InlineCellHotkeyScope } from '@/object-record/record-inline-cell/types/InlineCellHotkeyScope';
-import { RightDrawerTitleRecordInlineCell } from '@/object-record/record-right-drawer/components/RightDrawerTitleRecordInlineCell';
 import { useRecordShowContainerActions } from '@/object-record/record-show/hooks/useRecordShowContainerActions';
 import { useRecordShowContainerData } from '@/object-record/record-show/hooks/useRecordShowContainerData';
+import { recordStoreFamilySelector } from '@/object-record/record-store/states/selectors/recordStoreFamilySelector';
+import { recordStoreIdentifierFamilySelector } from '@/object-record/record-store/states/selectors/recordStoreIdentifierSelector';
+import { RecordTitleCell } from '@/object-record/record-title-cell/components/RecordTitleCell';
 import { ShowPageSummaryCard } from '@/ui/layout/show-page/components/ShowPageSummaryCard';
-import { ShowPageSummaryCardSkeletonLoader } from '@/ui/layout/show-page/components/ShowPageSummaryCardSkeletonLoader';
 import { useIsMobile } from '@/ui/utilities/responsive/hooks/useIsMobile';
+import { useRecoilValue } from 'recoil';
+import { isDefined } from 'twenty-shared';
 import { FieldMetadataType } from '~/generated/graphql';
-import { isDefined } from '~/utils/isDefined';
 
 type SummaryCardProps = {
   objectNameSingular: string;
   objectRecordId: string;
-  isNewRightDrawerItemLoading: boolean;
   isInRightDrawer: boolean;
 };
 
@@ -23,35 +23,36 @@ type SummaryCardProps = {
 export const SummaryCard = ({
   objectNameSingular,
   objectRecordId,
-  isNewRightDrawerItemLoading,
   isInRightDrawer,
 }: SummaryCardProps) => {
-  const {
-    recordFromStore,
-    recordLoading,
-    objectMetadataItem,
-    labelIdentifierFieldMetadataItem,
-    isPrefetchLoading,
-    recordIdentifier,
-  } = useRecordShowContainerData({
-    objectNameSingular,
-    objectRecordId,
-  });
+  const { recordLoading, labelIdentifierFieldMetadataItem, isPrefetchLoading } =
+    useRecordShowContainerData({
+      objectNameSingular,
+      objectRecordId,
+    });
+
+  const recordCreatedAt = useRecoilValue<string | null>(
+    recordStoreFamilySelector({
+      recordId: objectRecordId,
+      fieldName: 'createdAt',
+    }),
+  );
 
   const { onUploadPicture, useUpdateOneObjectRecordMutation } =
     useRecordShowContainerActions({
       objectNameSingular,
       objectRecordId,
-      recordFromStore,
     });
 
   const { Icon, IconColor } = useGetStandardObjectIcon(objectNameSingular);
   const isMobile = useIsMobile() || isInRightDrawer;
-  const isReadOnly = objectMetadataItem.isRemote;
 
-  if (isNewRightDrawerItemLoading || !isDefined(recordFromStore)) {
-    return <ShowPageSummaryCardSkeletonLoader />;
-  }
+  const recordIdentifier = useRecoilValue(
+    recordStoreIdentifierFamilySelector({
+      objectNameSingular,
+      recordId: objectRecordId,
+    }),
+  );
 
   return (
     <ShowPageSummaryCard
@@ -61,8 +62,10 @@ export const SummaryCard = ({
       icon={Icon}
       iconColor={IconColor}
       avatarPlaceholder={recordIdentifier?.name ?? ''}
-      date={recordFromStore.createdAt ?? ''}
-      loading={isPrefetchLoading || recordLoading}
+      date={recordCreatedAt ?? ''}
+      loading={
+        isPrefetchLoading || recordLoading || !isDefined(recordCreatedAt)
+      }
       title={
         <FieldContext.Provider
           value={{
@@ -73,7 +76,7 @@ export const SummaryCard = ({
             fieldDefinition: {
               type:
                 labelIdentifierFieldMetadataItem?.type ||
-                FieldMetadataType.Text,
+                FieldMetadataType.TEXT,
               iconName: '',
               fieldMetadataId: labelIdentifierFieldMetadataItem?.id ?? '',
               label: labelIdentifierFieldMetadataItem?.label || '',
@@ -86,13 +89,10 @@ export const SummaryCard = ({
             useUpdateRecord: useUpdateOneObjectRecordMutation,
             hotkeyScope: InlineCellHotkeyScope.InlineCell,
             isCentered: !isMobile,
+            isDisplayModeFixHeight: true,
           }}
         >
-          {isInRightDrawer ? (
-            <RightDrawerTitleRecordInlineCell />
-          ) : (
-            <RecordInlineCell readonly={isReadOnly} />
-          )}
+          <RecordTitleCell sizeVariant="md" />
         </FieldContext.Provider>
       }
       avatarType={recordIdentifier?.avatarType ?? 'rounded'}

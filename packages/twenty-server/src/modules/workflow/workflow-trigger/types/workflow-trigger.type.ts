@@ -1,8 +1,10 @@
-import { OutputSchema } from 'src/modules/workflow/workflow-executor/types/workflow-step-settings.type';
+import { OutputSchema } from 'src/modules/workflow/workflow-builder/workflow-schema/types/output-schema.type';
 
 export enum WorkflowTriggerType {
   DATABASE_EVENT = 'DATABASE_EVENT',
   MANUAL = 'MANUAL',
+  CRON = 'CRON',
+  WEBHOOK = 'WEBHOOK',
 }
 
 type BaseWorkflowTriggerSettings = {
@@ -35,8 +37,36 @@ export type WorkflowManualTrigger = BaseTrigger & {
   };
 };
 
+export type WorkflowCronTrigger = BaseTrigger & {
+  type: WorkflowTriggerType.CRON;
+  settings: (
+    | {
+        type: 'DAYS';
+        schedule: { day: number; hour: number; minute: number };
+      }
+    | {
+        type: 'HOURS';
+        schedule: { hour: number; minute: number };
+      }
+    | {
+        type: 'MINUTES';
+        schedule: { minute: number };
+      }
+    | {
+        type: 'CUSTOM';
+        pattern: string;
+      }
+  ) & { outputSchema: object };
+};
+
+export type WorkflowWebhookTrigger = BaseTrigger & {
+  type: WorkflowTriggerType.WEBHOOK;
+};
+
 export type WorkflowManualTriggerSettings = WorkflowManualTrigger['settings'];
 
 export type WorkflowTrigger =
   | WorkflowDatabaseEventTrigger
-  | WorkflowManualTrigger;
+  | WorkflowManualTrigger
+  | WorkflowCronTrigger
+  | WorkflowWebhookTrigger;

@@ -1,30 +1,36 @@
 import { useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
-import { useAuth } from '@/auth/hooks/useAuth';
 import { useIsLogged } from '@/auth/hooks/useIsLogged';
+import { useVerifyLogin } from '@/auth/hooks/useVerifyLogin';
 import { AppPath } from '@/types/AppPath';
+import { SnackBarVariant } from '@/ui/feedback/snack-bar-manager/components/SnackBar';
+import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
+import { isDefined } from 'twenty-shared';
+import { useNavigateApp } from '~/hooks/useNavigateApp';
 
 export const VerifyEffect = () => {
   const [searchParams] = useSearchParams();
   const loginToken = searchParams.get('loginToken');
+  const errorMessage = searchParams.get('errorMessage');
 
+  const { enqueueSnackBar } = useSnackBar();
   const isLogged = useIsLogged();
-  const navigate = useNavigate();
-
-  const { verify } = useAuth();
+  const navigate = useNavigateApp();
+  const { verifyLoginToken } = useVerifyLogin();
 
   useEffect(() => {
-    const getTokens = async () => {
-      if (!loginToken) {
-        navigate(AppPath.SignInUp);
-      } else {
-        await verify(loginToken);
-      }
-    };
+    if (isDefined(errorMessage)) {
+      enqueueSnackBar(errorMessage, {
+        dedupeKey: 'get-auth-tokens-from-login-token-failed-dedupe-key',
+        variant: SnackBarVariant.Error,
+      });
+    }
 
-    if (!isLogged) {
-      getTokens();
+    if (isDefined(loginToken)) {
+      verifyLoginToken(loginToken);
+    } else if (!isLogged) {
+      navigate(AppPath.SignInUp);
     }
     // Verify only needs to run once at mount
     // eslint-disable-next-line react-hooks/exhaustive-deps

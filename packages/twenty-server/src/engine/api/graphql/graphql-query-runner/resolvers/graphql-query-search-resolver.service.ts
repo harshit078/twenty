@@ -1,61 +1,50 @@
 import { Injectable } from '@nestjs/common';
 
-import graphqlFields from 'graphql-fields';
+import { isDefined } from 'twenty-shared';
 import { Brackets } from 'typeorm';
 
-import { ResolverService } from 'src/engine/api/graphql/graphql-query-runner/interfaces/resolver-service.interface';
 import {
-  Record as IRecord,
+  GraphqlQueryBaseResolverService,
+  GraphqlQueryResolverExecutionArgs,
+} from 'src/engine/api/graphql/graphql-query-runner/interfaces/base-resolver-service';
+import {
+  ObjectRecord,
+  ObjectRecordFilter,
   OrderByDirection,
-  RecordFilter,
-} from 'src/engine/api/graphql/workspace-query-builder/interfaces/record.interface';
+} from 'src/engine/api/graphql/workspace-query-builder/interfaces/object-record.interface';
 import { IConnection } from 'src/engine/api/graphql/workspace-query-runner/interfaces/connection.interface';
 import { WorkspaceQueryRunnerOptions } from 'src/engine/api/graphql/workspace-query-runner/interfaces/query-runner-option.interface';
 import { SearchResolverArgs } from 'src/engine/api/graphql/workspace-resolver-builder/interfaces/workspace-resolvers-builder.interface';
 
 import { QUERY_MAX_RECORDS } from 'src/engine/api/graphql/graphql-query-runner/constants/query-max-records.constant';
-import { GraphqlQueryParser } from 'src/engine/api/graphql/graphql-query-runner/graphql-query-parsers/graphql-query.parser';
 import { ObjectRecordsToGraphqlConnectionHelper } from 'src/engine/api/graphql/graphql-query-runner/helpers/object-records-to-graphql-connection.helper';
+import { FeatureFlagKey } from 'src/engine/core-modules/feature-flag/enums/feature-flag-key.enum';
+import { formatSearchTerms } from 'src/engine/core-modules/global-search/utils/format-search-terms';
 import { SEARCH_VECTOR_FIELD } from 'src/engine/metadata-modules/constants/search-vector-field.constants';
-import { TwentyORMGlobalManager } from 'src/engine/twenty-orm/twenty-orm-global.manager';
-import { isDefined } from 'src/utils/is-defined';
+import { formatResult } from 'src/engine/twenty-orm/utils/format-result.util';
 
 @Injectable()
-export class GraphqlQuerySearchResolverService
-  implements ResolverService<SearchResolverArgs, IConnection<IRecord>>
-{
-  constructor(
-    private readonly twentyORMGlobalManager: TwentyORMGlobalManager,
-  ) {}
-
-  async resolve<
-    ObjectRecord extends IRecord = IRecord,
-    Filter extends RecordFilter = RecordFilter,
-  >(
-    args: SearchResolverArgs,
-    options: WorkspaceQueryRunnerOptions,
+export class GraphqlQuerySearchResolverService extends GraphqlQueryBaseResolverService<
+  SearchResolverArgs,
+  IConnection<ObjectRecord>
+> {
+  async resolve(
+    executionArgs: GraphqlQueryResolverExecutionArgs<SearchResolverArgs>,
+    featureFlagsMap: Record<FeatureFlagKey, boolean>,
   ): Promise<IConnection<ObjectRecord>> {
-    const {
-      authContext,
-      objectMetadataItem,
-      objectMetadataMapItem,
-      objectMetadataMap,
-      info,
-    } = options;
-
-    const repository =
-      await this.twentyORMGlobalManager.getRepositoryForWorkspace(
-        authContext.workspace.id,
-        objectMetadataItem.nameSingular,
-      );
+    const { authContext, objectMetadataMaps, objectMetadataItemWithFieldMaps } =
+      executionArgs.options;
 
     const typeORMObjectRecordsParser =
-      new ObjectRecordsToGraphqlConnectionHelper(objectMetadataMap);
+      new ObjectRecordsToGraphqlConnectionHelper(
+        objectMetadataMaps,
+        featureFlagsMap,
+      );
 
-    if (!isDefined(args.searchInput)) {
+    if (!isDefined(executionArgs.args.searchInput)) {
       return typeORMObjectRecordsParser.createConnection({
         objectRecords: [],
-        objectName: objectMetadataItem.nameSingular,
+        objectName: objectMetadataItemWithFieldMaps.nameSingular,
         take: 0,
         totalCount: 0,
         order: [{ id: OrderByDirection.AscNullsFirst }],
@@ -63,89 +52,103 @@ export class GraphqlQuerySearchResolverService
         hasPreviousPage: false,
       });
     }
-    const searchTerms = this.formatSearchTerms(args.searchInput, 'and');
-    const searchTermsOr = this.formatSearchTerms(args.searchInput, 'or');
 
-    const limit = args?.limit ?? QUERY_MAX_RECORDS;
-
-    const queryBuilder = repository.createQueryBuilder(
-      objectMetadataItem.nameSingular,
+    const searchTerms = formatSearchTerms(
+      executionArgs.args.searchInput,
+      'and',
     );
-    const graphqlQueryParser = new GraphqlQueryParser(
-      objectMetadataMapItem.fields,
-      objectMetadataMap,
+    const searchTermsOr = formatSearchTerms(
+      executionArgs.args.searchInput,
+      'or',
     );
 
-    const queryBuilderWithFilter = graphqlQueryParser.applyFilterToBuilder(
+    const limit = executionArgs.args?.limit ?? QUERY_MAX_RECORDS;
+
+    const queryBuilder = executionArgs.repository.createQueryBuilder(
+      objectMetadataItemWithFieldMaps.nameSingular,
+    );
+
+    executionArgs.graphqlQueryParser.applyFilterToBuilder(
       queryBuilder,
-      objectMetadataMapItem.nameSingular,
-      args.filter ?? ({} as Filter),
+      objectMetadataItemWithFieldMaps.nameSingular,
+      executionArgs.args.filter ?? ({} as ObjectRecordFilter),
     );
 
-    const resultsWithTsVector = (await queryBuilderWithFilter
-      .andWhere(
-        new Brackets((qb) => {
-          qb.where(
-            searchTerms === ''
-              ? `"${SEARCH_VECTOR_FIELD.name}" IS NOT NULL`
-              : `"${SEARCH_VECTOR_FIELD.name}" @@ to_tsquery('simple', :searchTerms)`,
-            searchTerms === '' ? {} : { searchTerms },
-          ).orWhere(
-            searchTermsOr === ''
-              ? `"${SEARCH_VECTOR_FIELD.name}" IS NOT NULL`
-              : `"${SEARCH_VECTOR_FIELD.name}" @@ to_tsquery('simple', :searchTermsOr)`,
-            searchTermsOr === '' ? {} : { searchTermsOr },
-          );
-        }),
-      )
-      .orderBy(
-        `ts_rank_cd("${SEARCH_VECTOR_FIELD.name}", to_tsquery(:searchTerms))`,
-        'DESC',
-      )
-      .addOrderBy(
-        `ts_rank("${SEARCH_VECTOR_FIELD.name}", to_tsquery(:searchTermsOr))`,
-        'DESC',
-      )
-      .setParameter('searchTerms', searchTerms)
-      .setParameter('searchTermsOr', searchTermsOr)
-      .take(limit)
-      .getMany()) as ObjectRecord[];
+    const countQueryBuilder = queryBuilder.clone();
 
-    const objectRecords = await repository.formatResult(resultsWithTsVector);
+    const resultsQueryBuilder =
+      searchTerms !== ''
+        ? queryBuilder
+            .andWhere(
+              new Brackets((qb) => {
+                qb.where(
+                  `"${SEARCH_VECTOR_FIELD.name}" @@ to_tsquery('simple', :searchTerms)`,
+                  { searchTerms },
+                ).orWhere(
+                  `"${SEARCH_VECTOR_FIELD.name}" @@ to_tsquery('simple', :searchTermsOr)`,
+                  { searchTermsOr },
+                );
+              }),
+            )
+            .orderBy(
+              `ts_rank_cd("${SEARCH_VECTOR_FIELD.name}", to_tsquery(:searchTerms))`,
+              'DESC',
+            )
+            .addOrderBy(
+              `ts_rank("${SEARCH_VECTOR_FIELD.name}", to_tsquery(:searchTermsOr))`,
+              'DESC',
+            )
+            .setParameter('searchTerms', searchTerms)
+            .setParameter('searchTermsOr', searchTermsOr)
+            .take(limit)
+        : queryBuilder
+            .andWhere(
+              new Brackets((qb) => {
+                qb.where(`"${SEARCH_VECTOR_FIELD.name}" IS NOT NULL`);
+              }),
+            )
+            .take(limit);
 
-    const selectedFields = graphqlFields(info);
+    const resultsWithTsVector =
+      (await resultsQueryBuilder.getMany()) as ObjectRecord[];
 
-    const totalCount = isDefined(selectedFields.totalCount)
-      ? await queryBuilderWithFilter.getCount()
+    const objectRecords = formatResult<ObjectRecord[]>(
+      resultsWithTsVector,
+      objectMetadataItemWithFieldMaps,
+      objectMetadataMaps,
+    );
+
+    const totalCount = isDefined(
+      executionArgs.graphqlQuerySelectedFieldsResult.aggregate.totalCount,
+    )
+      ? await countQueryBuilder.getCount()
       : 0;
     const order = undefined;
 
+    if (executionArgs.graphqlQuerySelectedFieldsResult.relations) {
+      await this.processNestedRelationsHelper.processNestedRelations({
+        objectMetadataMaps,
+        parentObjectMetadataItem: objectMetadataItemWithFieldMaps,
+        parentObjectRecords: objectRecords,
+        relations: executionArgs.graphqlQuerySelectedFieldsResult.relations,
+        aggregate: executionArgs.graphqlQuerySelectedFieldsResult.aggregate,
+        limit,
+        authContext,
+        dataSource: executionArgs.dataSource,
+        isNewRelationEnabled:
+          featureFlagsMap[FeatureFlagKey.IsNewRelationEnabled],
+      });
+    }
+
     return typeORMObjectRecordsParser.createConnection({
       objectRecords: objectRecords ?? [],
-      objectName: objectMetadataItem.nameSingular,
+      objectName: objectMetadataItemWithFieldMaps.nameSingular,
       take: limit,
       totalCount,
       order,
       hasNextPage: false,
       hasPreviousPage: false,
     });
-  }
-
-  private formatSearchTerms(
-    searchTerm: string,
-    operator: 'and' | 'or' = 'and',
-  ) {
-    if (searchTerm === '') {
-      return '';
-    }
-    const words = searchTerm.trim().split(/\s+/);
-    const formattedWords = words.map((word) => {
-      const escapedWord = word.replace(/[\\:'&|!()]/g, '\\$&');
-
-      return `${escapedWord}:*`;
-    });
-
-    return formattedWords.join(` ${operator === 'and' ? '&' : '|'} `);
   }
 
   async validate(

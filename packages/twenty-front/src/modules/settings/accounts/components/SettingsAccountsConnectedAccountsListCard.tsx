@@ -1,13 +1,13 @@
-import { useNavigate } from 'react-router-dom';
 import { IconComponent, IconGoogle, IconMicrosoft } from 'twenty-ui';
 
 import { ConnectedAccount } from '@/accounts/types/ConnectedAccount';
 import { SettingsAccountsListEmptyStateCard } from '@/settings/accounts/components/SettingsAccountsListEmptyStateCard';
-import { getSettingsPagePath } from '@/settings/utils/getSettingsPagePath';
 import { SettingsPath } from '@/types/SettingsPath';
 
 import { SettingsAccountsConnectedAccountsRowRightContainer } from '@/settings/accounts/components/SettingsAccountsConnectedAccountsRowRightContainer';
+import { useNavigateSettings } from '~/hooks/useNavigateSettings';
 import { SettingsListCard } from '../../components/SettingsListCard';
+import { useLingui } from '@lingui/react/macro';
 
 const ProviderIcons: { [k: string]: IconComponent } = {
   google: IconGoogle,
@@ -21,7 +21,8 @@ export const SettingsAccountsConnectedAccountsListCard = ({
   accounts: ConnectedAccount[];
   loading?: boolean;
 }) => {
-  const navigate = useNavigate();
+  const navigate = useNavigateSettings();
+  const { t } = useLingui();
 
   if (!accounts.length) {
     return <SettingsAccountsListEmptyStateCard />;
@@ -36,11 +37,9 @@ export const SettingsAccountsConnectedAccountsListCard = ({
       RowRightComponent={({ item: account }) => (
         <SettingsAccountsConnectedAccountsRowRightContainer account={account} />
       )}
-      hasFooter
-      footerButtonLabel="Add account"
-      onFooterButtonClick={() =>
-        navigate(getSettingsPagePath(SettingsPath.NewAccount))
-      }
+      hasFooter={true}
+      footerButtonLabel={t`Add account`}
+      onFooterButtonClick={() => navigate(SettingsPath.NewAccount)}
     />
   );
 };

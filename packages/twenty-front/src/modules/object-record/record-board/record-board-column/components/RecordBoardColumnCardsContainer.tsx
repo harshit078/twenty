@@ -3,19 +3,16 @@ import { Draggable, DroppableProvided } from '@hello-pangea/dnd';
 import { useContext } from 'react';
 import { useRecoilValue } from 'recoil';
 
-import { CoreObjectNameSingular } from '@/object-metadata/types/CoreObjectNameSingular';
-import { RecordBoardContext } from '@/object-record/record-board/contexts/RecordBoardContext';
-import { useRecordBoardStates } from '@/object-record/record-board/hooks/internal/useRecordBoardStates';
 import { RecordBoardColumnCardContainerSkeletonLoader } from '@/object-record/record-board/record-board-column/components/RecordBoardColumnCardContainerSkeletonLoader';
 import { RecordBoardColumnCardsMemo } from '@/object-record/record-board/record-board-column/components/RecordBoardColumnCardsMemo';
 import { RecordBoardColumnFetchMoreLoader } from '@/object-record/record-board/record-board-column/components/RecordBoardColumnFetchMoreLoader';
-import { RecordBoardColumnNewOpportunity } from '@/object-record/record-board/record-board-column/components/RecordBoardColumnNewOpportunity';
-import { RecordBoardColumnNewRecord } from '@/object-record/record-board/record-board-column/components/RecordBoardColumnNewRecord';
 import { RecordBoardColumnNewRecordButton } from '@/object-record/record-board/record-board-column/components/RecordBoardColumnNewRecordButton';
 import { RecordBoardColumnContext } from '@/object-record/record-board/record-board-column/contexts/RecordBoardColumnContext';
-import { useIsOpportunitiesCompanyFieldDisabled } from '@/object-record/record-board/record-board-column/hooks/useIsOpportunitiesCompanyFieldDisabled';
 import { getNumberOfCardsPerColumnForSkeletonLoading } from '@/object-record/record-board/record-board-column/utils/getNumberOfCardsPerColumnForSkeletonLoading';
+import { isRecordBoardCompactModeActiveComponentState } from '@/object-record/record-board/states/isRecordBoardCompactModeActiveComponentState';
+import { recordBoardVisibleFieldDefinitionsComponentSelector } from '@/object-record/record-board/states/selectors/recordBoardVisibleFieldDefinitionsComponentSelector';
 import { isRecordIndexBoardColumnLoadingFamilyState } from '@/object-record/states/isRecordBoardColumnLoadingFamilyState';
+import { useRecoilComponentValueV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValueV2';
 
 const StyledColumnCardsContainer = styled.div`
   display: flex;
@@ -48,7 +45,6 @@ export const RecordBoardColumnCardsContainer = ({
   droppableProvided,
 }: RecordBoardColumnCardsContainerProps) => {
   const { columnDefinition } = useContext(RecordBoardColumnContext);
-  const { objectMetadataItem } = useContext(RecordBoardContext);
 
   const columnId = columnDefinition.id;
 
@@ -56,18 +52,15 @@ export const RecordBoardColumnCardsContainer = ({
     isRecordIndexBoardColumnLoadingFamilyState(columnId),
   );
 
-  const { isCompactModeActiveState, visibleFieldDefinitionsState } =
-    useRecordBoardStates();
-
-  const visibleFieldDefinitions = useRecoilValue(
-    visibleFieldDefinitionsState(),
+  const visibleFieldDefinitions = useRecoilComponentValueV2(
+    recordBoardVisibleFieldDefinitionsComponentSelector,
   );
 
   const numberOfFields = visibleFieldDefinitions.length;
 
-  const isCompactModeActive = useRecoilValue(isCompactModeActiveState);
-  const { isOpportunitiesCompanyFieldDisabled } =
-    useIsOpportunitiesCompanyFieldDisabled();
+  const isCompactModeActive = useRecoilComponentValueV2(
+    isRecordBoardCompactModeActiveComponentState,
+  );
 
   return (
     <StyledColumnCardsContainer
@@ -75,33 +68,6 @@ export const RecordBoardColumnCardsContainer = ({
       // eslint-disable-next-line react/jsx-props-no-spreading
       {...droppableProvided?.droppableProps}
     >
-      <Draggable
-        draggableId={`new-${columnDefinition.id}-top`}
-        index={-1}
-        isDragDisabled={true}
-      >
-        {(draggableProvided) => (
-          <div
-            ref={draggableProvided?.innerRef}
-            // eslint-disable-next-line react/jsx-props-no-spreading
-            {...draggableProvided?.draggableProps}
-          >
-            {objectMetadataItem.nameSingular ===
-              CoreObjectNameSingular.Opportunity &&
-            !isOpportunitiesCompanyFieldDisabled ? (
-              <RecordBoardColumnNewOpportunity
-                columnId={columnDefinition.id}
-                position="first"
-              />
-            ) : (
-              <RecordBoardColumnNewRecord
-                columnId={columnDefinition.id}
-                position="first"
-              />
-            )}
-          </div>
-        )}
-      </Draggable>
       {isRecordIndexBoardColumnLoading ? (
         Array.from(
           {
@@ -136,23 +102,8 @@ export const RecordBoardColumnCardsContainer = ({
             // eslint-disable-next-line react/jsx-props-no-spreading
             {...draggableProvided?.draggableProps}
           >
-            {objectMetadataItem.nameSingular ===
-              CoreObjectNameSingular.Opportunity &&
-            !isOpportunitiesCompanyFieldDisabled ? (
-              <RecordBoardColumnNewOpportunity
-                columnId={columnDefinition.id}
-                position="last"
-              />
-            ) : (
-              <RecordBoardColumnNewRecord
-                columnId={columnDefinition.id}
-                position="last"
-              />
-            )}
             <StyledNewButtonContainer>
-              <RecordBoardColumnNewRecordButton
-                columnId={columnDefinition.id}
-              />
+              <RecordBoardColumnNewRecordButton />
             </StyledNewButtonContainer>
           </div>
         )}

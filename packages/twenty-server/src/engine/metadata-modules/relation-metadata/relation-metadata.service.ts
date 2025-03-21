@@ -3,15 +3,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import { TypeOrmQueryService } from '@ptc-org/nestjs-query-typeorm';
 import camelCase from 'lodash.camelcase';
+import { FieldMetadataType, isDefined } from 'twenty-shared';
 import { FindOneOptions, In, Repository } from 'typeorm';
 import { v4 as uuidV4 } from 'uuid';
 
 import { FieldMetadataInterface } from 'src/engine/metadata-modules/field-metadata/interfaces/field-metadata.interface';
 
-import {
-  FieldMetadataEntity,
-  FieldMetadataType,
-} from 'src/engine/metadata-modules/field-metadata/field-metadata.entity';
+import { FieldMetadataEntity } from 'src/engine/metadata-modules/field-metadata/field-metadata.entity';
 import { FieldMetadataService } from 'src/engine/metadata-modules/field-metadata/field-metadata.service';
 import { IndexMetadataService } from 'src/engine/metadata-modules/index-metadata/index-metadata.service';
 import { ObjectMetadataEntity } from 'src/engine/metadata-modules/object-metadata/object-metadata.entity';
@@ -21,9 +19,8 @@ import {
   RelationMetadataException,
   RelationMetadataExceptionCode,
 } from 'src/engine/metadata-modules/relation-metadata/relation-metadata.exception';
-import { InvalidStringException } from 'src/engine/metadata-modules/utils/exceptions/invalid-string.exception';
 import { validateFieldNameAvailabilityOrThrow } from 'src/engine/metadata-modules/utils/validate-field-name-availability.utils';
-import { validateMetadataNameValidityOrThrow } from 'src/engine/metadata-modules/utils/validate-metadata-name-validity.utils';
+import { validateMetadataNameOrThrow } from 'src/engine/metadata-modules/utils/validate-metadata-name.utils';
 import { WorkspaceMetadataVersionService } from 'src/engine/metadata-modules/workspace-metadata-version/services/workspace-metadata-version.service';
 import { generateMigrationName } from 'src/engine/metadata-modules/workspace-migration/utils/generate-migration-name.util';
 import {
@@ -36,6 +33,7 @@ import { computeObjectTargetTable } from 'src/engine/utils/compute-object-target
 import { WorkspaceCacheStorageService } from 'src/engine/workspace-cache-storage/workspace-cache-storage.service';
 import { WorkspaceMigrationRunnerService } from 'src/engine/workspace-manager/workspace-migration-runner/workspace-migration-runner.service';
 import { BASE_OBJECT_STANDARD_FIELD_IDS } from 'src/engine/workspace-manager/workspace-sync-metadata/constants/standard-field-ids';
+import { InvalidMetadataNameException } from 'src/engine/metadata-modules/utils/exceptions/invalid-metadata-name.exception';
 
 import {
   RelationMetadataEntity,
@@ -55,8 +53,8 @@ export class RelationMetadataService extends TypeOrmQueryService<RelationMetadat
     private readonly workspaceMigrationService: WorkspaceMigrationService,
     private readonly workspaceMigrationRunnerService: WorkspaceMigrationRunnerService,
     private readonly workspaceMetadataVersionService: WorkspaceMetadataVersionService,
-    private readonly workspaceCacheStorageService: WorkspaceCacheStorageService,
     private readonly indexMetadataService: IndexMetadataService,
+    private readonly workspaceCacheStorageService: WorkspaceCacheStorageService,
   ) {
     super(relationMetadataRepository);
   }
@@ -69,17 +67,15 @@ export class RelationMetadataService extends TypeOrmQueryService<RelationMetadat
     );
 
     try {
-      validateMetadataNameValidityOrThrow(relationMetadataInput.fromName);
-      validateMetadataNameValidityOrThrow(relationMetadataInput.toName);
+      validateMetadataNameOrThrow(relationMetadataInput.fromName);
+      validateMetadataNameOrThrow(relationMetadataInput.toName);
     } catch (error) {
-      if (error instanceof InvalidStringException) {
+      if (error instanceof InvalidMetadataNameException)
         throw new RelationMetadataException(
-          `Characters used in name "${relationMetadataInput.fromName}" or "${relationMetadataInput.toName}" are not supported`,
+          error.message,
           RelationMetadataExceptionCode.INVALID_RELATION_INPUT,
         );
-      } else {
-        throw error;
-      }
+      throw error;
     }
 
     await this.validateCreateRelationMetadataInput(
@@ -95,7 +91,7 @@ export class RelationMetadataService extends TypeOrmQueryService<RelationMetadat
     const toId = uuidV4();
 
     const createdRelationFieldsMetadata =
-      await this.fieldMetadataService.createMany([
+      await this.fieldMetadataRepository.save([
         this.createFieldMetadataForRelationMetadata(
           relationMetadataInput,
           'from',
@@ -137,22 +133,20 @@ export class RelationMetadataService extends TypeOrmQueryService<RelationMetadat
       );
     }
 
-    const deletedFieldMetadata = toObjectMetadata.fields.find(
+    const deletedAtFieldMetadata = toObjectMetadata.fields.find(
       (fieldMetadata) =>
         fieldMetadata.standardId === BASE_OBJECT_STANDARD_FIELD_IDS.deletedAt,
     );
 
-    if (!deletedFieldMetadata) {
-      throw new RelationMetadataException(
-        `Deleted field metadata not found`,
-        RelationMetadataExceptionCode.RELATION_METADATA_NOT_FOUND,
-      );
-    }
+    this.throwIfDeletedAtFieldMetadataNotFound(deletedAtFieldMetadata);
 
     await this.indexMetadataService.createIndexMetadata(
       relationMetadataInput.workspaceId,
       toObjectMetadata,
-      [foreignKeyFieldMetadata, deletedFieldMetadata],
+      [
+        foreignKeyFieldMetadata,
+        deletedAtFieldMetadata as FieldMetadataEntity<FieldMetadataType>,
+      ],
       false,
       false,
     );
@@ -187,7 +181,7 @@ export class RelationMetadataService extends TypeOrmQueryService<RelationMetadat
       objectMetadataMap[relationMetadataInput.toObjectMetadataId] === undefined
     ) {
       throw new RelationMetadataException(
-        'Can\t find an existing object matching with fromObjectMetadataId or toObjectMetadataId',
+        "Can't find an existing object matching with fromObjectMetadataId or toObjectMetadataId",
         RelationMetadataExceptionCode.RELATION_METADATA_NOT_FOUND,
       );
     }
@@ -332,6 +326,7 @@ export class RelationMetadataService extends TypeOrmQueryService<RelationMetadat
       type: FieldMetadataType.UUID,
       objectMetadataId: relationMetadataInput.toObjectMetadataId,
       workspaceId: relationMetadataInput.workspaceId,
+      settings: { isForeignKey: true },
     };
   }
 
@@ -440,6 +435,24 @@ export class RelationMetadataService extends TypeOrmQueryService<RelationMetadat
       columnName,
     );
 
+    const deletedAtFieldMetadata = await this.fieldMetadataRepository.findOneBy(
+      {
+        objectMetadataId: relationMetadata.toObjectMetadataId,
+        name: 'deletedAt',
+      },
+    );
+
+    this.throwIfDeletedAtFieldMetadataNotFound(deletedAtFieldMetadata);
+
+    await this.indexMetadataService.deleteIndexMetadata(
+      workspaceId,
+      relationMetadata.toObjectMetadata,
+      [
+        foreignKeyFieldMetadata,
+        deletedAtFieldMetadata as FieldMetadataEntity<FieldMetadataType>,
+      ],
+    );
+
     await this.workspaceMigrationRunnerService.executeMigrationFromPendingMigrations(
       relationMetadata.workspaceId,
     );
@@ -467,13 +480,13 @@ export class RelationMetadataService extends TypeOrmQueryService<RelationMetadat
       );
     }
 
-    const objectMetadataMap =
-      await this.workspaceCacheStorageService.getObjectMetadataMap(
+    const objectMetadataMaps =
+      await this.workspaceCacheStorageService.getObjectMetadataMaps(
         workspaceId,
         metadataVersion,
       );
 
-    if (!objectMetadataMap) {
+    if (!objectMetadataMaps) {
       throw new NotFoundException(
         `Object metadata map not found for workspace ${workspaceId} and metadata version ${metadataVersion}`,
       );
@@ -481,9 +494,15 @@ export class RelationMetadataService extends TypeOrmQueryService<RelationMetadat
 
     const mappedResult = fieldMetadataItems.map((fieldMetadataItem) => {
       const objectMetadata =
-        objectMetadataMap[fieldMetadataItem.objectMetadataId];
+        objectMetadataMaps.byId[fieldMetadataItem.objectMetadataId];
 
-      const fieldMetadata = objectMetadata.fields[fieldMetadataItem.id];
+      if (!objectMetadata) {
+        return new NotFoundException(
+          `Object metadata not found for field ${fieldMetadataItem.id}`,
+        );
+      }
+
+      const fieldMetadata = objectMetadata.fieldsById[fieldMetadataItem.id];
 
       const relationMetadata =
         fieldMetadata.fromRelationMetadata ?? fieldMetadata.toRelationMetadata;
@@ -495,18 +514,18 @@ export class RelationMetadataService extends TypeOrmQueryService<RelationMetadat
       }
 
       const fromObjectMetadata =
-        objectMetadataMap[relationMetadata.fromObjectMetadataId];
+        objectMetadataMaps.byId[relationMetadata.fromObjectMetadataId];
 
       const toObjectMetadata =
-        objectMetadataMap[relationMetadata.toObjectMetadataId];
+        objectMetadataMaps.byId[relationMetadata.toObjectMetadataId];
 
       const fromFieldMetadata =
-        objectMetadataMap[fromObjectMetadata.id].fields[
+        objectMetadataMaps.byId[fromObjectMetadata.id].fieldsById[
           relationMetadata.fromFieldMetadataId
         ];
 
       const toFieldMetadata =
-        objectMetadataMap[toObjectMetadata.id].fields[
+        objectMetadataMaps.byId[toObjectMetadata.id].fieldsById[
           relationMetadata.toFieldMetadataId
         ];
 
@@ -546,5 +565,16 @@ export class RelationMetadataService extends TypeOrmQueryService<RelationMetadat
         },
       ],
     );
+  }
+
+  private throwIfDeletedAtFieldMetadataNotFound(
+    deletedAtFieldMetadata?: FieldMetadataEntity<FieldMetadataType> | null,
+  ) {
+    if (!isDefined(deletedAtFieldMetadata)) {
+      throw new RelationMetadataException(
+        `Deleted field metadata not found`,
+        RelationMetadataExceptionCode.RELATION_METADATA_NOT_FOUND,
+      );
+    }
   }
 }

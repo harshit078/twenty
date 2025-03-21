@@ -1,63 +1,58 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormProvider, useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
 import { H2Title, Section } from 'twenty-ui';
-import { z } from 'zod';
 
 import { useCreateOneObjectMetadataItem } from '@/object-metadata/hooks/useCreateOneObjectMetadataItem';
-import { getObjectSlug } from '@/object-metadata/utils/getObjectSlug';
 import { SaveAndCancelButtons } from '@/settings/components/SaveAndCancelButtons/SaveAndCancelButtons';
 import { SettingsPageContainer } from '@/settings/components/SettingsPageContainer';
+import { SETTINGS_OBJECT_MODEL_IS_LABEL_SYNCED_WITH_NAME_LABEL_DEFAULT_VALUE } from '@/settings/constants/SettingsObjectModel';
+import { SettingsDataModelObjectAboutForm } from '@/settings/data-model/objects/forms/components/SettingsDataModelObjectAboutForm';
 import {
-  SettingsDataModelObjectAboutForm,
+  SettingsDataModelObjectAboutFormValues,
   settingsDataModelObjectAboutFormSchema,
-} from '@/settings/data-model/objects/forms/components/SettingsDataModelObjectAboutForm';
-import { settingsCreateObjectInputSchema } from '@/settings/data-model/validation-schemas/settingsCreateObjectInputSchema';
-import { getSettingsPagePath } from '@/settings/utils/getSettingsPagePath';
+} from '@/settings/data-model/validation-schemas/settingsDataModelObjectAboutFormSchema';
 import { SettingsPath } from '@/types/SettingsPath';
 import { SnackBarVariant } from '@/ui/feedback/snack-bar-manager/components/SnackBar';
 import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
 import { SubMenuTopBarContainer } from '@/ui/layout/page/components/SubMenuTopBarContainer';
-
-const newObjectFormSchema = settingsDataModelObjectAboutFormSchema;
-
-type SettingsDataModelNewObjectFormValues = z.infer<typeof newObjectFormSchema>;
+import { useLingui } from '@lingui/react/macro';
+import { useNavigateSettings } from '~/hooks/useNavigateSettings';
+import { getSettingsPath } from '~/utils/navigation/getSettingsPath';
 
 export const SettingsNewObject = () => {
-  const navigate = useNavigate();
+  const { t } = useLingui();
+  const navigate = useNavigateSettings();
   const { enqueueSnackBar } = useSnackBar();
 
-  const { createOneObjectMetadataItem, findManyRecordsCache } =
-    useCreateOneObjectMetadataItem();
+  const { createOneObjectMetadataItem } = useCreateOneObjectMetadataItem();
 
-  const settingsObjectsPagePath = getSettingsPagePath(SettingsPath.Objects);
-
-  const formConfig = useForm<SettingsDataModelNewObjectFormValues>({
-    mode: 'onTouched',
-    resolver: zodResolver(newObjectFormSchema),
+  const formConfig = useForm<SettingsDataModelObjectAboutFormValues>({
+    mode: 'onSubmit',
+    resolver: zodResolver(settingsDataModelObjectAboutFormSchema),
+    defaultValues: {
+      isLabelSyncedWithName:
+        SETTINGS_OBJECT_MODEL_IS_LABEL_SYNCED_WITH_NAME_LABEL_DEFAULT_VALUE,
+    },
   });
 
   const { isValid, isSubmitting } = formConfig.formState;
   const canSave = isValid && !isSubmitting;
 
   const handleSave = async (
-    formValues: SettingsDataModelNewObjectFormValues,
+    formValues: SettingsDataModelObjectAboutFormValues,
   ) => {
     try {
-      const { data: response } = await createOneObjectMetadataItem(
-        settingsCreateObjectInputSchema.parse(formValues),
-      );
+      const { data: response } = await createOneObjectMetadataItem(formValues);
 
       navigate(
+        response ? SettingsPath.ObjectDetail : SettingsPath.Objects,
         response
-          ? `${settingsObjectsPagePath}/${getObjectSlug(
-              response.createOneObject,
-            )}`
-          : settingsObjectsPagePath,
+          ? { objectNamePlural: response.createOneObject.namePlural }
+          : undefined,
       );
-
-      await findManyRecordsCache();
     } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
       enqueueSnackBar((error as Error).message, {
         variant: SnackBarVariant.Error,
       });
@@ -68,23 +63,23 @@ export const SettingsNewObject = () => {
     // eslint-disable-next-line react/jsx-props-no-spreading
     <FormProvider {...formConfig}>
       <SubMenuTopBarContainer
-        title="New Object"
+        title={t`New Object`}
         links={[
           {
-            children: 'Workspace',
-            href: getSettingsPagePath(SettingsPath.Workspace),
+            children: t`Workspace`,
+            href: getSettingsPath(SettingsPath.Workspace),
           },
           {
-            children: 'Objects',
-            href: settingsObjectsPagePath,
+            children: t`Objects`,
+            href: getSettingsPath(SettingsPath.Objects),
           },
-          { children: 'New' },
+          { children: t`New` },
         ]}
         actionButton={
           <SaveAndCancelButtons
             isSaveDisabled={!canSave}
             isCancelDisabled={isSubmitting}
-            onCancel={() => navigate(settingsObjectsPagePath)}
+            onCancel={() => navigate(SettingsPath.Objects)}
             onSave={formConfig.handleSubmit(handleSave)}
           />
         }
@@ -92,10 +87,12 @@ export const SettingsNewObject = () => {
         <SettingsPageContainer>
           <Section>
             <H2Title
-              title="About"
-              description="Name in both singular (e.g., 'Invoice') and plural (e.g., 'Invoices') forms."
+              title={t`About`}
+              description={t`Define the name and description of your object`}
             />
-            <SettingsDataModelObjectAboutForm />
+            <SettingsDataModelObjectAboutForm
+              onNewDirtyField={() => formConfig.trigger()}
+            />
           </Section>
         </SettingsPageContainer>
       </SubMenuTopBarContainer>

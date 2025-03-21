@@ -10,6 +10,7 @@ import { useIsMobile } from '@/ui/utilities/responsive/hooks/useIsMobile';
 import { NAV_DRAWER_WIDTHS } from '@/ui/navigation/navigation-drawer/constants/NavDrawerWidths';
 
 import { useIsSettingsDrawer } from '@/navigation/hooks/useIsSettingsDrawer';
+import { NavigationDrawerSection } from '@/ui/navigation/navigation-drawer/components/NavigationDrawerSection';
 import { isNavigationDrawerExpandedState } from '../../states/isNavigationDrawerExpanded';
 import { NavigationDrawerBackButton } from './NavigationDrawerBackButton';
 import { NavigationDrawerHeader } from './NavigationDrawerHeader';
@@ -18,8 +19,7 @@ export type NavigationDrawerProps = {
   children: ReactNode;
   className?: string;
   footer?: ReactNode;
-  logo?: string;
-  title?: string;
+  title: string;
 };
 
 const StyledAnimatedContainer = styled(motion.div)<{ isSettings?: boolean }>`
@@ -43,7 +43,7 @@ const StyledContainer = styled.div<{
         ? theme.spacing(3, 8)
         : theme.spacing(3, 8, 4, 0)
       : theme.spacing(3, 2, 4)};
-
+  padding-right: 0px;
   @media (max-width: ${MOBILE_VIEWPORT}px) {
     width: 95%;
   }
@@ -61,7 +61,6 @@ export const NavigationDrawer = ({
   children,
   className,
   footer,
-  logo,
   title,
 }: NavigationDrawerProps) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -98,9 +97,7 @@ export const NavigationDrawer = ({
       className={className}
       initial={false}
       animate={navigationDrawerAnimate}
-      transition={{
-        duration: theme.animation.duration.normal,
-      }}
+      transition={{ duration: theme.animation.duration.normal }}
       isSettings={isSettingsDrawer}
     >
       <StyledContainer
@@ -112,16 +109,12 @@ export const NavigationDrawer = ({
         {isSettingsDrawer && title ? (
           !isMobile && <NavigationDrawerBackButton title={title} />
         ) : (
-          <NavigationDrawerHeader
-            name={title}
-            logo={logo}
-            showCollapseButton={isHovered}
-          />
+          <NavigationDrawerHeader showCollapseButton={isHovered} />
         )}
         <StyledItemsContainer isSettings={isSettingsDrawer}>
           {children}
         </StyledItemsContainer>
-        {footer}
+        <NavigationDrawerSection>{footer}</NavigationDrawerSection>
       </StyledContainer>
     </StyledAnimatedContainer>
   );

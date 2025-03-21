@@ -3,9 +3,14 @@ import { Meta, StoryObj } from '@storybook/react';
 import { within } from '@storybook/testing-library';
 import { HttpResponse, graphql } from 'msw';
 
+import { BILLING_BASE_PRODUCT_PRICES } from '@/billing/graphql/billingBaseProductPrices';
 import { AppPath } from '@/types/AppPath';
 import { GET_CURRENT_USER } from '@/users/graphql/queries/getCurrentUser';
-import { OnboardingStatus } from '~/generated/graphql';
+import {
+  BillingPlanKey,
+  OnboardingStatus,
+  SubscriptionInterval,
+} from '~/generated/graphql';
 import { ChooseYourPlan } from '~/pages/onboarding/ChooseYourPlan';
 import {
   PageDecorator,
@@ -26,37 +31,36 @@ const meta: Meta<PageDecoratorArgs> = {
           return HttpResponse.json({
             data: {
               currentUser: mockedOnboardingUserData(
-                OnboardingStatus.PlanRequired,
+                OnboardingStatus.PLAN_REQUIRED,
               ),
             },
           });
         }),
-        graphql.query('GetProductPrices', () => {
-          return HttpResponse.json({
-            data: {
-              getProductPrices: {
-                __typename: 'ProductPricesEntity',
-                productPrices: [
+        graphql.query(
+          getOperationName(BILLING_BASE_PRODUCT_PRICES) ?? '',
+          () => {
+            return HttpResponse.json({
+              data: {
+                plans: [
                   {
-                    __typename: 'ProductPriceEntity',
-                    created: 1699860608,
-                    recurringInterval: 'month',
-                    stripePriceId: 'monthly8usd',
-                    unitAmount: 900,
-                  },
-                  {
-                    __typename: 'ProductPriceEntity',
-                    created: 1701874964,
-                    recurringInterval: 'year',
-                    stripePriceId: 'priceId',
-                    unitAmount: 9000,
+                    planKey: BillingPlanKey.PRO,
+                    baseProduct: {
+                      prices: [
+                        {
+                          __typename: 'BillingPriceLicensedDTO',
+                          unitAmount: 900,
+                          stripePriceId: 'monthly8usd',
+                          recurringInterval: SubscriptionInterval.Month,
+                        },
+                      ],
+                    },
                   },
                 ],
               },
-            },
-          });
-        }),
-        graphqlMocks.handlers,
+            });
+          },
+        ),
+        ...graphqlMocks.handlers,
       ],
     },
   },
@@ -70,7 +74,7 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    await canvas.findByText('Choose your Plan', undefined, {
+    await canvas.findByText('Choose your Trial', undefined, {
       timeout: 3000,
     });
   },

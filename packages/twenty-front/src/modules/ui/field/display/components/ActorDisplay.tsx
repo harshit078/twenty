@@ -1,17 +1,37 @@
 import { FieldActorValue } from '@/object-record/record-field/types/FieldMetadata';
+import { ConnectedAccountProvider } from 'twenty-shared';
+
 import { useMemo } from 'react';
 import {
   AvatarChip,
-  AvatarChipVariant,
   IconApi,
   IconCalendar,
   IconCsv,
   IconGmail,
+  IconGoogleCalendar,
+  IconMail,
+  IconMicrosoftCalendar,
+  IconMicrosoftOutlook,
   IconRobot,
+  IconSettingsAutomation,
+  IconWebhook,
 } from 'twenty-ui';
 
 type ActorDisplayProps = Partial<FieldActorValue> & {
   avatarUrl?: string | null;
+};
+
+const PROVIDORS_ICON_MAPPING = {
+  EMAIL: {
+    [ConnectedAccountProvider.MICROSOFT]: IconMicrosoftOutlook,
+    [ConnectedAccountProvider.GOOGLE]: IconGmail,
+    default: IconMail,
+  },
+  CALENDAR: {
+    [ConnectedAccountProvider.MICROSOFT]: IconMicrosoftCalendar,
+    [ConnectedAccountProvider.GOOGLE]: IconGoogleCalendar,
+    default: IconCalendar,
+  },
 };
 
 export const ActorDisplay = ({
@@ -19,6 +39,7 @@ export const ActorDisplay = ({
   source,
   workspaceMemberId,
   avatarUrl,
+  context,
 }: ActorDisplayProps) => {
   const LeftIcon = useMemo(() => {
     switch (source) {
@@ -27,15 +48,19 @@ export const ActorDisplay = ({
       case 'IMPORT':
         return IconCsv;
       case 'EMAIL':
-        return IconGmail;
+        return PROVIDORS_ICON_MAPPING.EMAIL[context?.provider ?? 'default'];
       case 'CALENDAR':
-        return IconCalendar;
+        return PROVIDORS_ICON_MAPPING.CALENDAR[context?.provider ?? 'default'];
       case 'SYSTEM':
         return IconRobot;
+      case 'WORKFLOW':
+        return IconSettingsAutomation;
+      case 'WEBHOOK':
+        return IconWebhook;
       default:
         return undefined;
     }
-  }, [source]);
+  }, [source, context?.provider]);
 
   const isIconInverted =
     source === 'API' || source === 'IMPORT' || source === 'SYSTEM';
@@ -48,7 +73,6 @@ export const ActorDisplay = ({
       LeftIcon={LeftIcon}
       avatarUrl={avatarUrl ?? undefined}
       isIconInverted={isIconInverted}
-      variant={AvatarChipVariant.Transparent}
     />
   );
 };

@@ -1,4 +1,6 @@
+import { Trans } from '@lingui/react/macro';
 import { Img } from '@react-email/components';
+import { emailTheme } from 'src/common-style';
 
 import { BaseEmail } from 'src/components/BaseEmail';
 import { CallToAction } from 'src/components/CallToAction';
@@ -9,7 +11,7 @@ import { MainText } from 'src/components/MainText';
 import { Title } from 'src/components/Title';
 import { WhatIsTwenty } from 'src/components/WhatIsTwenty';
 import { capitalize } from 'src/utils/capitalize';
-import { getImageAbsoluteURI } from 'src/utils/getImageAbsoluteURI';
+import { APP_LOCALES, getImageAbsoluteURI } from 'twenty-shared';
 
 type SendInviteLinkEmailProps = {
   link: string;
@@ -17,8 +19,10 @@ type SendInviteLinkEmailProps = {
   sender: {
     email: string;
     firstName: string;
+    lastName: string;
   };
-  serverUrl?: string;
+  serverUrl: string;
+  locale: keyof typeof APP_LOCALES;
 };
 
 export const SendInviteLinkEmail = ({
@@ -26,21 +30,30 @@ export const SendInviteLinkEmail = ({
   workspace,
   sender,
   serverUrl,
+  locale,
 }: SendInviteLinkEmailProps) => {
-  const workspaceLogo = getImageAbsoluteURI(workspace.logo, serverUrl);
+  const workspaceLogo = workspace.logo
+    ? getImageAbsoluteURI({ imageUrl: workspace.logo, baseUrl: serverUrl })
+    : null;
+
   return (
-    <BaseEmail width={333}>
-      <Title value="Join your team on Twenty" />
+    <BaseEmail width={333} locale={locale}>
+      <Title value={<Trans>Join your team on Twenty</Trans>} />
       <MainText>
         {capitalize(sender.firstName)} (
-        <Link href={sender.email} value={sender.email} />) has invited you to
-        join a workspace called <b>{workspace.name}</b>
+        <Link
+          href={`mailto:${sender.email}`}
+          value={sender.email}
+          color={emailTheme.font.colors.blue}
+        />
+        ) <Trans>has invited you to join a workspace called </Trans>
+        <b>{workspace.name}</b>
         <br />
       </MainText>
       <HighlightedContainer>
         {workspaceLogo && <Img src={workspaceLogo} width={40} height={40} />}
         {workspace.name && <HighlightedText value={workspace.name} />}
-        <CallToAction href={link} value="Accept invite" />
+        <CallToAction href={link} value={<Trans>Accept invite</Trans>} />
       </HighlightedContainer>
       <WhatIsTwenty />
     </BaseEmail>

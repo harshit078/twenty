@@ -27,12 +27,16 @@ spec:
             claimName: twentycrm-db-pvc
       containers:
         - name: twentycrm
-          image: twentycrm/twenty-postgres:latest
+          image: twentycrm/twenty-postgres-spilo:latest
           imagePullPolicy: Always
           env:
-            - name: POSTGRES_PASSWORD
-              value: "twenty"
-            - name: BITNAMI_DEBUG
+            - name: PGUSER_SUPERUSER
+              value: "postgres"
+            - name: PGPASSWORD_SUPERUSER
+              value: "postgres"
+            - name: SPILO_PROVIDER
+              value: "local"
+            - name: ALLOW_NOSSL
               value: "true"
           ports:
             - containerPort: 5432
@@ -48,7 +52,7 @@ spec:
           stdin: true
           tty: true
           volumeMounts:
-            - mountPath: /bitnami/postgresql
+            - mountPath: /home/postgres/pgdata
               name: twentycrm-db-data
       dnsPolicy: ClusterFirst
       restartPolicy: Always

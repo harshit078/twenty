@@ -13,6 +13,7 @@ export const CREATE_ONE_OBJECT_METADATA_ITEM = gql`
       icon
       isCustom
       isActive
+      isSearchable
       createdAt
       updatedAt
       labelIdentifierFieldMetadataId
@@ -43,8 +44,10 @@ export const CREATE_ONE_FIELD_METADATA_ITEM = gql`
 `;
 
 export const CREATE_ONE_RELATION_METADATA_ITEM = gql`
-  mutation CreateOneRelationMetadata($input: CreateOneRelationInput!) {
-    createOneRelation(input: $input) {
+  mutation CreateOneRelationMetadataItem(
+    $input: CreateOneRelationMetadataInput!
+  ) {
+    createOneRelationMetadata(input: $input) {
       id
       relationType
       fromObjectMetadataId
@@ -75,6 +78,7 @@ export const UPDATE_ONE_FIELD_METADATA_ITEM = gql`
       createdAt
       updatedAt
       settings
+      isLabelSyncedWithName
     }
   }
 `;
@@ -95,6 +99,7 @@ export const UPDATE_ONE_OBJECT_METADATA_ITEM = gql`
       icon
       isCustom
       isActive
+      isSearchable
       createdAt
       updatedAt
       labelIdentifierFieldMetadataId
@@ -116,6 +121,7 @@ export const DELETE_ONE_OBJECT_METADATA_ITEM = gql`
       icon
       isCustom
       isActive
+      isSearchable
       createdAt
       updatedAt
       labelIdentifierFieldMetadataId

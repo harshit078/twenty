@@ -1,6 +1,8 @@
 import { AppPath } from '@/types/AppPath';
 import { useCallback } from 'react';
 
+import { useRedirect } from '@/domain-manager/hooks/useRedirect';
+import { ConnectedAccountProvider } from 'twenty-shared';
 import { REACT_APP_SERVER_BASE_URL } from '~/config';
 import {
   CalendarChannelVisibility,
@@ -8,11 +10,11 @@ import {
   useGenerateTransientTokenMutation,
 } from '~/generated/graphql';
 
-const getProviderUrl = (provider: string) => {
+const getProviderUrl = (provider: ConnectedAccountProvider) => {
   switch (provider) {
-    case 'google':
+    case ConnectedAccountProvider.GOOGLE:
       return 'google-apis';
-    case 'microsoft':
+    case ConnectedAccountProvider.MICROSOFT:
       return 'microsoft-apis';
     default:
       throw new Error(`Provider ${provider} is not supported`);
@@ -21,10 +23,11 @@ const getProviderUrl = (provider: string) => {
 
 export const useTriggerApisOAuth = () => {
   const [generateTransientToken] = useGenerateTransientTokenMutation();
+  const { redirect } = useRedirect();
 
   const triggerApisOAuth = useCallback(
     async (
-      provider: string,
+      provider: ConnectedAccountProvider,
       {
         redirectLocation,
         messageVisibility,
@@ -60,9 +63,9 @@ export const useTriggerApisOAuth = () => {
 
       params += loginHint ? `&loginHint=${loginHint}` : '';
 
-      window.location.href = `${authServerUrl}/auth/${getProviderUrl(provider)}?${params}`;
+      redirect(`${authServerUrl}/auth/${getProviderUrl(provider)}?${params}`);
     },
-    [generateTransientToken],
+    [generateTransientToken, redirect],
   );
 
   return { triggerApisOAuth };

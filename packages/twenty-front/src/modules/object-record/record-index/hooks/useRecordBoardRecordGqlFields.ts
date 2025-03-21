@@ -1,10 +1,13 @@
-import { useRecoilValue } from 'recoil';
-
+import { useObjectMetadataItem } from '@/object-metadata/hooks/useObjectMetadataItem';
+import { CoreObjectNameSingular } from '@/object-metadata/types/CoreObjectNameSingular';
 import { ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { getObjectMetadataIdentifierFields } from '@/object-metadata/utils/getObjectMetadataIdentifierFields';
-import { hasPositionField } from '@/object-metadata/utils/hasPositionField';
-import { useRecordBoardStates } from '@/object-record/record-board/hooks/internal/useRecordBoardStates';
-import { isDefined } from '~/utils/isDefined';
+import { hasObjectMetadataItemPositionField } from '@/object-metadata/utils/hasObjectMetadataItemPositionField';
+import { generateDepthOneRecordGqlFields } from '@/object-record/graphql/utils/generateDepthOneRecordGqlFields';
+import { recordBoardVisibleFieldDefinitionsComponentSelector } from '@/object-record/record-board/states/selectors/recordBoardVisibleFieldDefinitionsComponentSelector';
+import { recordGroupFieldMetadataComponentState } from '@/object-record/record-group/states/recordGroupFieldMetadataComponentState';
+import { useRecoilComponentValueV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValueV2';
+import { isDefined } from 'twenty-shared';
 
 export const useRecordBoardRecordGqlFields = ({
   objectMetadataItem,
@@ -13,15 +16,17 @@ export const useRecordBoardRecordGqlFields = ({
   recordBoardId: string;
   objectMetadataItem: ObjectMetadataItem;
 }) => {
-  const { kanbanFieldMetadataNameState, visibleFieldDefinitionsState } =
-    useRecordBoardStates(recordBoardId);
+  const visibleFieldDefinitions = useRecoilComponentValueV2(
+    recordBoardVisibleFieldDefinitionsComponentSelector,
+    recordBoardId,
+  );
 
   const { imageIdentifierFieldMetadataItem, labelIdentifierFieldMetadataItem } =
     getObjectMetadataIdentifierFields({ objectMetadataItem });
 
-  const kanbanFieldMetadataName = useRecoilValue(kanbanFieldMetadataNameState);
-  const visibleFieldDefinitions = useRecoilValue(
-    visibleFieldDefinitionsState(),
+  const recordGroupFieldMetadata = useRecoilComponentValueV2(
+    recordGroupFieldMetadataComponentState,
+    recordBoardId,
   );
 
   const identifierQueryFields: Record<string, boolean> = {};
@@ -34,32 +39,39 @@ export const useRecordBoardRecordGqlFields = ({
     identifierQueryFields[imageIdentifierFieldMetadataItem.name] = true;
   }
 
+  const { objectMetadataItem: noteTargetObjectMetadataItem } =
+    useObjectMetadataItem({
+      objectNameSingular: CoreObjectNameSingular.NoteTarget,
+    });
+
+  const { objectMetadataItem: taskTargetObjectMetadataItem } =
+    useObjectMetadataItem({
+      objectNameSingular: CoreObjectNameSingular.TaskTarget,
+    });
+
   const recordGqlFields: Record<string, any> = {
     id: true,
+    deletedAt: true,
     ...Object.fromEntries(
       visibleFieldDefinitions.map((visibleFieldDefinition) => [
         visibleFieldDefinition.metadata.fieldName,
         true,
       ]),
     ),
-    ...(hasPositionField(objectMetadataItem) ? { position: true } : undefined),
+    ...(hasObjectMetadataItemPositionField(objectMetadataItem)
+      ? { position: true }
+      : undefined),
     ...identifierQueryFields,
-    noteTargets: {
-      note: {
-        id: true,
-        title: true,
-      },
-    },
-    taskTargets: {
-      task: {
-        id: true,
-        title: true,
-      },
-    },
+    noteTargets: generateDepthOneRecordGqlFields({
+      objectMetadataItem: noteTargetObjectMetadataItem,
+    }),
+    taskTargets: generateDepthOneRecordGqlFields({
+      objectMetadataItem: taskTargetObjectMetadataItem,
+    }),
   };
 
-  if (isDefined(kanbanFieldMetadataName)) {
-    recordGqlFields[kanbanFieldMetadataName] = true;
+  if (isDefined(recordGroupFieldMetadata?.name)) {
+    recordGqlFields[recordGroupFieldMetadata.name] = true;
   }
 
   return recordGqlFields;

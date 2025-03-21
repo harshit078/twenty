@@ -8,17 +8,14 @@ import { CountrySelect } from '@/ui/input/components/internal/country/components
 import { SELECT_COUNTRY_DROPDOWN_ID } from '@/ui/input/components/internal/country/constants/SelectCountryDropdownId';
 import { TextInputV2 } from '@/ui/input/components/TextInputV2';
 import { useDropdown } from '@/ui/layout/dropdown/hooks/useDropdown';
+import { activeDropdownFocusIdState } from '@/ui/layout/dropdown/states/activeDropdownFocusIdState';
 import { useScopedHotkeys } from '@/ui/utilities/hotkey/hooks/useScopedHotkeys';
-import { useClickOutsideListener } from '@/ui/utilities/pointer-event/hooks/useClickOutsideListener';
+import { useListenClickOutside } from '@/ui/utilities/pointer-event/hooks/useListenClickOutside';
+import { useRecoilValue } from 'recoil';
+import { isDefined } from 'twenty-shared';
 import { MOBILE_VIEWPORT } from 'twenty-ui';
-import { isDefined } from '~/utils/isDefined';
 
 const StyledAddressContainer = styled.div`
-  background: ${({ theme }) => theme.background.secondary};
-  border: 1px solid ${({ theme }) => theme.border.color.light};
-  border-radius: ${({ theme }) => theme.border.radius.md};
-  box-shadow: ${({ theme }) => theme.boxShadow.strong};
-
   padding: 4px 8px;
 
   width: 344px;
@@ -185,18 +182,22 @@ export const AddressInput = ({
     [onEscape, internalValue],
   );
 
-  const { useListenClickOutside } = useClickOutsideListener('addressInput');
+  const activeDropdownFocusId = useRecoilValue(activeDropdownFocusIdState);
 
   useListenClickOutside({
     refs: [wrapperRef],
     callback: (event) => {
+      if (activeDropdownFocusId === SELECT_COUNTRY_DROPDOWN_ID) {
+        return;
+      }
+
       event.stopImmediatePropagation();
 
       closeCountryDropdown();
-
       onClickOutside?.(event, internalValue);
     },
     enabled: isDefined(onClickOutside),
+    listenerId: 'address-input',
   });
 
   useEffect(() => {
@@ -209,7 +210,7 @@ export const AddressInput = ({
         autoFocus
         value={internalValue.addressStreet1 ?? ''}
         ref={inputRefs['addressStreet1']}
-        label="ADDRESS 1"
+        label="Address 1"
         fullWidth
         onChange={getChangeHandler('addressStreet1')}
         onFocus={getFocusHandler('addressStreet1')}
@@ -217,7 +218,7 @@ export const AddressInput = ({
       <TextInputV2
         value={internalValue.addressStreet2 ?? ''}
         ref={inputRefs['addressStreet2']}
-        label="ADDRESS 2"
+        label="Address 2"
         fullWidth
         onChange={getChangeHandler('addressStreet2')}
         onFocus={getFocusHandler('addressStreet2')}
@@ -226,7 +227,7 @@ export const AddressInput = ({
         <TextInputV2
           value={internalValue.addressCity ?? ''}
           ref={inputRefs['addressCity']}
-          label="CITY"
+          label="City"
           fullWidth
           onChange={getChangeHandler('addressCity')}
           onFocus={getFocusHandler('addressCity')}
@@ -234,7 +235,7 @@ export const AddressInput = ({
         <TextInputV2
           value={internalValue.addressState ?? ''}
           ref={inputRefs['addressState']}
-          label="STATE"
+          label="State"
           fullWidth
           onChange={getChangeHandler('addressState')}
           onFocus={getFocusHandler('addressState')}
@@ -244,12 +245,13 @@ export const AddressInput = ({
         <TextInputV2
           value={internalValue.addressPostcode ?? ''}
           ref={inputRefs['addressPostcode']}
-          label="POST CODE"
+          label="Post Code"
           fullWidth
           onChange={getChangeHandler('addressPostcode')}
           onFocus={getFocusHandler('addressPostcode')}
         />
         <CountrySelect
+          label="Country"
           onChange={getChangeHandler('addressCountry')}
           selectedCountryName={internalValue.addressCountry ?? ''}
         />

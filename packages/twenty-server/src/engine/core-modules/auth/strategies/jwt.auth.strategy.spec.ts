@@ -3,6 +3,7 @@ import {
   AuthExceptionCode,
 } from 'src/engine/core-modules/auth/auth.exception';
 import { JwtPayload } from 'src/engine/core-modules/auth/types/auth-context.type';
+import { UserWorkspace } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
 import { Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
 
 import { JwtAuthStrategy } from './jwt.auth.strategy';
@@ -11,9 +12,11 @@ describe('JwtAuthStrategy', () => {
   let strategy: JwtAuthStrategy;
 
   let workspaceRepository: any;
+  let userWorkspaceRepository: any;
   let userRepository: any;
   let dataSourceService: any;
   let typeORMService: any;
+
   const jwt = {
     sub: 'sub-default',
     jti: 'jti-default',
@@ -25,6 +28,14 @@ describe('JwtAuthStrategy', () => {
 
   userRepository = {
     findOne: jest.fn(async () => null),
+  };
+
+  userWorkspaceRepository = {
+    findOne: jest.fn(async () => new UserWorkspace()),
+  };
+
+  const jwtWrapperService: any = {
+    extractJwtFromRequest: jest.fn(() => () => 'token'),
   };
 
   // first we test the API_KEY case
@@ -40,11 +51,12 @@ describe('JwtAuthStrategy', () => {
 
     strategy = new JwtAuthStrategy(
       {} as any,
-      {} as any,
+      jwtWrapperService,
       typeORMService,
       dataSourceService,
       workspaceRepository,
       {} as any,
+      userWorkspaceRepository,
     );
 
     await expect(strategy.validate(payload as JwtPayload)).rejects.toThrow(
@@ -75,11 +87,12 @@ describe('JwtAuthStrategy', () => {
 
     strategy = new JwtAuthStrategy(
       {} as any,
-      {} as any,
+      jwtWrapperService,
       typeORMService,
       dataSourceService,
       workspaceRepository,
       {} as any,
+      userWorkspaceRepository,
     );
 
     await expect(strategy.validate(payload as JwtPayload)).rejects.toThrow(
@@ -112,11 +125,12 @@ describe('JwtAuthStrategy', () => {
 
     strategy = new JwtAuthStrategy(
       {} as any,
-      {} as any,
+      jwtWrapperService,
       typeORMService,
       dataSourceService,
       workspaceRepository,
       {} as any,
+      userWorkspaceRepository,
     );
 
     const result = await strategy.validate(payload as JwtPayload);
@@ -143,19 +157,25 @@ describe('JwtAuthStrategy', () => {
 
     strategy = new JwtAuthStrategy(
       {} as any,
-      {} as any,
+      jwtWrapperService,
       typeORMService,
       dataSourceService,
       workspaceRepository,
       userRepository,
+      userWorkspaceRepository,
     );
 
     await expect(strategy.validate(payload as JwtPayload)).rejects.toThrow(
-      new AuthException('User not found', AuthExceptionCode.INVALID_INPUT),
+      new AuthException('User not found', expect.any(String)),
     );
+    try {
+      await strategy.validate(payload as JwtPayload);
+    } catch (e) {
+      expect(e.code).toBe(AuthExceptionCode.USER_NOT_FOUND);
+    }
   });
 
-  it('should be truthy if type is ACCESS, no jti, and user exist', async () => {
+  it('should throw AuthExceptionCode if type is ACCESS, no jti, and userWorkspace not found', async () => {
     const payload = {
       sub: 'sub-default',
       type: 'ACCESS',
@@ -169,17 +189,64 @@ describe('JwtAuthStrategy', () => {
       findOne: jest.fn(async () => ({ lastName: 'lastNameDefault' })),
     };
 
+    userWorkspaceRepository = {
+      findOne: jest.fn(async () => null),
+    };
+
     strategy = new JwtAuthStrategy(
       {} as any,
-      {} as any,
+      jwtWrapperService,
       typeORMService,
       dataSourceService,
       workspaceRepository,
       userRepository,
+      userWorkspaceRepository,
+    );
+
+    await expect(strategy.validate(payload as JwtPayload)).rejects.toThrow(
+      new AuthException('UserWorkspace not found', expect.any(String)),
+    );
+    try {
+      await strategy.validate(payload as JwtPayload);
+    } catch (e) {
+      expect(e.code).toBe(AuthExceptionCode.USER_WORKSPACE_NOT_FOUND);
+    }
+  });
+
+  it('should not throw if type is ACCESS, no jti, and user and userWorkspace exist', async () => {
+    const payload = {
+      sub: 'sub-default',
+      type: 'ACCESS',
+      userWorkspaceId: 'userWorkspaceId',
+    };
+
+    workspaceRepository = {
+      findOneBy: jest.fn(async () => new Workspace()),
+    };
+
+    userRepository = {
+      findOne: jest.fn(async () => ({ lastName: 'lastNameDefault' })),
+    };
+
+    userWorkspaceRepository = {
+      findOne: jest.fn(async () => ({
+        id: 'userWorkspaceId',
+      })),
+    };
+
+    strategy = new JwtAuthStrategy(
+      {} as any,
+      jwtWrapperService,
+      typeORMService,
+      dataSourceService,
+      workspaceRepository,
+      userRepository,
+      userWorkspaceRepository,
     );
 
     const user = await strategy.validate(payload as JwtPayload);
 
     expect(user.user?.lastName).toBe('lastNameDefault');
+    expect(user.userWorkspaceId).toBe('userWorkspaceId');
   });
 });

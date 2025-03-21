@@ -1,8 +1,8 @@
 import { Bundle, ZObject } from 'zapier-platform-core';
 
+import { capitalize } from 'twenty-shared';
 import { findObjectNamesSingularKey } from '../triggers/find_object_names_singular';
 import { listRecordIdsKey } from '../triggers/list_record_ids';
-import { capitalize } from '../utils/capitalize';
 import { computeInputFields } from '../utils/computeInputFields';
 import { InputData } from '../utils/data.types';
 import handleQueryParams from '../utils/handleQueryParams';
@@ -64,15 +64,36 @@ const computeQueryParameters = (
   }
 };
 
+const getOperationFromDatabaseEventAction = (
+  z: ZObject,
+  databaseEventAction: DatabaseEventAction,
+): 'create' | 'update' | 'delete' => {
+  switch (databaseEventAction) {
+    case DatabaseEventAction.CREATED:
+      return 'create';
+    case DatabaseEventAction.UPDATED:
+      return 'update';
+    case DatabaseEventAction.DELETED:
+      return 'delete';
+    default:
+      throw new z.errors.Error(
+        `Unknown databaseEventAction: ${databaseEventAction}`,
+        'Error',
+        404,
+      );
+  }
+};
+
 const perform = async (z: ZObject, bundle: Bundle) => {
   const data = bundle.inputData;
   const operation = data.crudZapierOperation;
+  const queryOperation = getOperationFromDatabaseEventAction(z, operation);
   const nameSingular = data.nameSingular;
   delete data.nameSingular;
   delete data.crudZapierOperation;
   const query = `
-  mutation ${operation}${capitalize(nameSingular)} {
-    ${operation}${capitalize(nameSingular)}(
+  mutation ${queryOperation}${capitalize(nameSingular)} {
+    ${queryOperation}${capitalize(nameSingular)}(
       ${computeQueryParameters(operation, data)}
     )
     {id}

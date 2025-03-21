@@ -3,23 +3,23 @@ import styled from '@emotion/styled';
 import { format } from 'date-fns';
 import { useContext } from 'react';
 import { useRecoilValue } from 'recoil';
-import {
-  Avatar,
-  AvatarGroup,
-  IconArrowRight,
-  IconLock,
-  isDefined,
-  Card,
-  CardContent,
-} from 'twenty-ui';
 
 import { CalendarCurrentEventCursor } from '@/activities/calendar/components/CalendarCurrentEventCursor';
 import { CalendarContext } from '@/activities/calendar/contexts/CalendarContext';
-import { useOpenCalendarEventRightDrawer } from '@/activities/calendar/right-drawer/hooks/useOpenCalendarEventRightDrawer';
 import { getCalendarEventEndDate } from '@/activities/calendar/utils/getCalendarEventEndDate';
 import { getCalendarEventStartDate } from '@/activities/calendar/utils/getCalendarEventStartDate';
 import { hasCalendarEventEnded } from '@/activities/calendar/utils/hasCalendarEventEnded';
 import { currentWorkspaceMemberState } from '@/auth/states/currentWorkspaceMemberState';
+import { useOpenCalendarEventInCommandMenu } from '@/command-menu/hooks/useOpenCalendarEventInCommandMenu';
+import { isDefined } from 'twenty-shared';
+import {
+  Avatar,
+  AvatarGroup,
+  Card,
+  CardContent,
+  IconArrowRight,
+  IconLock,
+} from 'twenty-ui';
 import {
   CalendarChannelVisibility,
   TimelineCalendarEvent,
@@ -70,7 +70,10 @@ const StyledTime = styled.div`
 
 const StyledTitle = styled.div<{ active: boolean; canceled: boolean }>`
   flex: 1 0 auto;
-
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: ${({ theme }) => theme.spacing(10)};
   ${({ theme, active }) =>
     active &&
     css`
@@ -111,7 +114,8 @@ export const CalendarEventRow = ({
   const theme = useTheme();
   const currentWorkspaceMember = useRecoilValue(currentWorkspaceMemberState);
   const { displayCurrentEventCursor = false } = useContext(CalendarContext);
-  const { openCalendarEventRightDrawer } = useOpenCalendarEventRightDrawer();
+  const { openCalendarEventInCommandMenu } =
+    useOpenCalendarEventInCommandMenu();
 
   const startsAt = getCalendarEventStartDate(calendarEvent);
   const endsAt = getCalendarEventEndDate(calendarEvent);
@@ -126,7 +130,7 @@ export const CalendarEventRow = ({
     ({ workspaceMemberId }) => workspaceMemberId === currentWorkspaceMember?.id,
   );
   const showTitle =
-    calendarEvent.visibility === CalendarChannelVisibility.ShareEverything;
+    calendarEvent.visibility === CalendarChannelVisibility.SHARE_EVERYTHING;
 
   return (
     <StyledContainer
@@ -134,7 +138,9 @@ export const CalendarEventRow = ({
       showTitle={showTitle}
       onClick={
         showTitle
-          ? () => openCalendarEventRightDrawer(calendarEvent.id)
+          ? () => {
+              openCalendarEventInCommandMenu(calendarEvent.id);
+            }
           : undefined
       }
     >

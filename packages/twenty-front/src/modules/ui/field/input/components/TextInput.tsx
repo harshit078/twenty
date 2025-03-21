@@ -9,23 +9,39 @@ export const StyledTextInput = styled.input`
   margin: 0;
   ${TEXT_INPUT_STYLE}
   width: 100%;
+
+  &:disabled {
+    color: ${({ theme }) => theme.font.color.tertiary};
+  }
 `;
 
 type TextInputProps = {
+  inputId?: string;
   placeholder?: string;
   autoFocus?: boolean;
   value: string;
-  onEnter: (newText: string) => void;
-  onEscape: (newText: string) => void;
+  onEnter?: (newText: string) => void;
+  onEscape?: (newText: string) => void;
   onTab?: (newText: string) => void;
   onShiftTab?: (newText: string) => void;
-  onClickOutside: (event: MouseEvent | TouchEvent, inputValue: string) => void;
+  onClickOutside?: (event: MouseEvent | TouchEvent, inputValue: string) => void;
   hotkeyScope: string;
   onChange?: (newText: string) => void;
   copyButton?: boolean;
+  shouldTrim?: boolean;
+  disabled?: boolean;
+};
+
+const getValue = (value: string, shouldTrim: boolean) => {
+  if (shouldTrim) {
+    return value.trim();
+  }
+
+  return value;
 };
 
 export const TextInput = ({
+  inputId,
   placeholder,
   autoFocus,
   value,
@@ -37,6 +53,8 @@ export const TextInput = ({
   onClickOutside,
   onChange,
   copyButton = true,
+  shouldTrim = true,
+  disabled,
 }: TextInputProps) => {
   const [internalText, setInternalText] = useState(value);
 
@@ -44,12 +62,12 @@ export const TextInput = ({
   const copyRef = useRef<HTMLDivElement>(null);
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setInternalText(event.target.value.trim());
-    onChange?.(event.target.value.trim());
+    setInternalText(getValue(event.target.value, shouldTrim));
+    onChange?.(getValue(event.target.value, shouldTrim));
   };
   useEffect(() => {
-    setInternalText(value.trim());
-  }, [value]);
+    setInternalText(getValue(value, shouldTrim));
+  }, [value, shouldTrim]);
 
   useRegisterInputEvents({
     inputRef: wrapperRef,
@@ -66,12 +84,14 @@ export const TextInput = ({
   return (
     <>
       <StyledTextInput
+        id={inputId}
         autoComplete="off"
         ref={wrapperRef}
         placeholder={placeholder}
         onChange={handleChange}
         autoFocus={autoFocus}
         value={internalText}
+        disabled={disabled}
       />
       {copyButton && (
         <div ref={copyRef}>

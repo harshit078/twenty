@@ -1,17 +1,16 @@
 import { SettingsFieldType } from '@/settings/data-model/types/SettingsFieldType';
+import { SettingsPath } from '@/types/SettingsPath';
 import { Dropdown } from '@/ui/layout/dropdown/components/Dropdown';
 import { DropdownMenu } from '@/ui/layout/dropdown/components/DropdownMenu';
 import { DropdownMenuItemsContainer } from '@/ui/layout/dropdown/components/DropdownMenuItemsContainer';
 import { useDropdown } from '@/ui/layout/dropdown/hooks/useDropdown';
 import { useTheme } from '@emotion/react';
 import styled from '@emotion/styled';
-import {
-  useLocation,
-  useNavigate,
-  useParams,
-  useSearchParams,
-} from 'react-router-dom';
-import { Button, IconChevronDown, isDefined, MenuItem } from 'twenty-ui';
+import { useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { isDefined } from 'twenty-shared';
+import { Button, IconChevronDown, MenuItem } from 'twenty-ui';
+import { useNavigateSettings } from '~/hooks/useNavigateSettings';
+import { t } from '@lingui/core/macro';
 
 const StyledContainer = styled.div`
   align-items: center;
@@ -66,9 +65,9 @@ const StyledButton = styled(Button)`
 export const SettingsDataModelNewFieldBreadcrumbDropDown = () => {
   const dropdownId = `settings-object-new-field-breadcrumb-dropdown`;
   const { closeDropdown } = useDropdown(dropdownId);
-  const navigate = useNavigate();
+  const navigate = useNavigateSettings();
   const location = useLocation();
-  const { objectSlug = '' } = useParams();
+  const { objectNamePlural = '' } = useParams();
   const [searchParams] = useSearchParams();
   const theme = useTheme();
 
@@ -78,11 +77,15 @@ export const SettingsDataModelNewFieldBreadcrumbDropDown = () => {
   const handleClick = (step: 'select' | 'configure') => {
     if (step === 'configure' && isDefined(fieldType)) {
       navigate(
-        `/settings/objects/${objectSlug}/new-field/configure?fieldType=${fieldType}`,
+        SettingsPath.ObjectNewFieldConfigure,
+        { objectNamePlural },
+        { fieldType },
       );
     } else {
       navigate(
-        `/settings/objects/${objectSlug}/new-field/select${fieldType ? `?fieldType=${fieldType}` : ''}`,
+        SettingsPath.ObjectNewFieldSelect,
+        { objectNamePlural },
+        fieldType ? { fieldType } : undefined,
       );
     }
     closeDropdown();
@@ -98,9 +101,9 @@ export const SettingsDataModelNewFieldBreadcrumbDropDown = () => {
           <StyledButtonContainer>
             <StyledDownChevron size={theme.icon.size.md} />
             {isConfigureStep ? (
-              <StyledButton variant="tertiary" title="2. Configure" />
+              <StyledButton variant="tertiary" title={t`2. Configure`} />
             ) : (
-              <StyledButton variant="tertiary" title="1. Type" />
+              <StyledButton variant="tertiary" title={t`1. Type`} />
             )}
           </StyledButtonContainer>
         }
@@ -109,14 +112,14 @@ export const SettingsDataModelNewFieldBreadcrumbDropDown = () => {
             <DropdownMenuItemsContainer>
               <StyledMenuItemWrapper>
                 <StyledMenuItem
-                  text="1. Type"
+                  text={t`1. Type`}
                   onClick={() => handleClick('select')}
                   selected={!isConfigureStep}
                 />
               </StyledMenuItemWrapper>
               <StyledMenuItemWrapper disabled={!isDefined(fieldType)}>
                 <StyledMenuItem
-                  text="2. Configure"
+                  text={t`2. Configure`}
                   onClick={() => handleClick('configure')}
                   selected={isConfigureStep}
                   disabled={!isDefined(fieldType)}
@@ -125,9 +128,7 @@ export const SettingsDataModelNewFieldBreadcrumbDropDown = () => {
             </DropdownMenuItemsContainer>
           </DropdownMenu>
         }
-        dropdownHotkeyScope={{
-          scope: dropdownId,
-        }}
+        dropdownHotkeyScope={{ scope: dropdownId }}
       />
     </StyledContainer>
   );

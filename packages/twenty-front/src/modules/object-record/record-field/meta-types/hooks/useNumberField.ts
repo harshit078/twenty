@@ -11,6 +11,7 @@ import {
   castAsNumberOrNull,
 } from '~/utils/cast-as-number-or-null';
 
+import { isNull } from '@sniptt/guards';
 import { FieldContext } from '../../contexts/FieldContext';
 import { usePersistField } from '../../hooks/usePersistField';
 import { assertFieldMetadata } from '../../types/guards/assertFieldMetadata';
@@ -19,7 +20,7 @@ import { isFieldNumber } from '../../types/guards/isFieldNumber';
 export const useNumberField = () => {
   const { recordId, fieldDefinition, hotkeyScope } = useContext(FieldContext);
 
-  assertFieldMetadata(FieldMetadataType.Number, isFieldNumber, fieldDefinition);
+  assertFieldMetadata(FieldMetadataType.NUMBER, isFieldNumber, fieldDefinition);
 
   const fieldName = fieldDefinition.metadata.fieldName;
 
@@ -33,12 +34,23 @@ export const useNumberField = () => {
   const persistField = usePersistField();
 
   const persistNumberField = (newValue: string) => {
+    if (fieldDefinition?.metadata?.settings?.type === 'percentage') {
+      const newValueEscaped = newValue.replaceAll('%', '');
+      if (!canBeCastAsNumberOrNull(newValueEscaped)) {
+        return;
+      }
+      const castedValue = castAsNumberOrNull(newValue);
+      if (!isNull(castedValue)) {
+        persistField(castedValue / 100);
+        return;
+      }
+      persistField(null);
+      return;
+    }
     if (!canBeCastAsNumberOrNull(newValue)) {
       return;
     }
-
     const castedValue = castAsNumberOrNull(newValue);
-
     persistField(castedValue);
   };
 

@@ -11,9 +11,9 @@ import { useGetRecordFromCache } from '@/object-record/cache/hooks/useGetRecordF
 import { useCreateOneRecordMutation } from '@/object-record/hooks/useCreateOneRecordMutation';
 import { useDestroyOneRecordMutation } from '@/object-record/hooks/useDestroyOneRecordMutation';
 import { useUpdateOneRecordMutation } from '@/object-record/hooks/useUpdateOneRecordMutation';
-import { ObjectRecord } from '@/object-record/types/ObjectRecord';
 import { GraphQLView } from '@/views/types/GraphQLView';
 import { ViewFilter } from '@/views/types/ViewFilter';
+import { isDefined } from 'twenty-shared';
 
 export const usePersistViewFilterRecords = () => {
   const { objectMetadataItem } = useObjectMetadataItem({
@@ -42,7 +42,7 @@ export const usePersistViewFilterRecords = () => {
 
   const createViewFilterRecords = useCallback(
     (viewFiltersToCreate: ViewFilter[], view: GraphQLView) => {
-      if (!viewFiltersToCreate.length) return;
+      if (viewFiltersToCreate.length === 0) return;
 
       return Promise.all(
         viewFiltersToCreate.map((viewFilter) =>
@@ -57,11 +57,12 @@ export const usePersistViewFilterRecords = () => {
                 displayValue: viewFilter.displayValue,
                 operand: viewFilter.operand,
                 viewFilterGroupId: viewFilter.viewFilterGroupId,
-              },
+                positionInViewFilterGroup: viewFilter.positionInViewFilterGroup,
+              } satisfies Partial<ViewFilter>,
             },
             update: (cache, { data }) => {
               const record = data?.['createViewFilter'];
-              if (!record) return;
+              if (!isDefined(record)) return;
 
               triggerCreateRecordsOptimisticEffect({
                 cache,
@@ -95,14 +96,19 @@ export const usePersistViewFilterRecords = () => {
                 value: viewFilter.value,
                 displayValue: viewFilter.displayValue,
                 operand: viewFilter.operand,
-              },
+                positionInViewFilterGroup: viewFilter.positionInViewFilterGroup,
+                viewFilterGroupId: viewFilter.viewFilterGroupId,
+              } satisfies Partial<ViewFilter>,
             },
             update: (cache, { data }) => {
               const record = data?.['updateViewFilter'];
-              if (!record) return;
-              const cachedRecord = getRecordFromCache<ObjectRecord>(record.id);
+              if (!isDefined(record)) return;
 
-              if (!cachedRecord) return;
+              const cachedRecord = getRecordFromCache<ViewFilter>(
+                record.id,
+                cache,
+              );
+              if (!isDefined(cachedRecord)) return;
 
               triggerUpdateRecordOptimisticEffect({
                 cache,
@@ -137,12 +143,13 @@ export const usePersistViewFilterRecords = () => {
             },
             update: (cache, { data }) => {
               const record = data?.['destroyViewFilter'];
+              if (!isDefined(record)) return;
 
-              if (!record) return;
-
-              const cachedRecord = getRecordFromCache(record.id, cache);
-
-              if (!cachedRecord) return;
+              const cachedRecord = getRecordFromCache<ViewFilter>(
+                record.id,
+                cache,
+              );
+              if (!isDefined(cachedRecord)) return;
 
               triggerDestroyRecordsOptimisticEffect({
                 cache,

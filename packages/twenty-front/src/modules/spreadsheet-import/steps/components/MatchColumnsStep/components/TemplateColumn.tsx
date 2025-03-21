@@ -4,6 +4,7 @@ import { IconForbid } from 'twenty-ui';
 import { MatchColumnSelect } from '@/spreadsheet-import/components/MatchColumnSelect';
 import { useSpreadsheetImportInternal } from '@/spreadsheet-import/hooks/useSpreadsheetImportInternal';
 
+import { FieldMetadataType } from 'twenty-shared';
 import { Columns, ColumnType } from '../MatchColumnsStep';
 
 const StyledContainer = styled.div`
@@ -28,22 +29,24 @@ export const TemplateColumn = <T extends string>({
   const column = columns[columnIndex];
   const isIgnored = column.type === ColumnType.ignored;
 
-  const fieldOptions = fields.map(({ icon, label, key }) => {
-    const isSelected =
-      columns.findIndex((column) => {
-        if ('value' in column) {
-          return column.value === key;
-        }
-        return false;
-      }) !== -1;
+  const fieldOptions = fields
+    .filter((field) => field.fieldMetadataType !== FieldMetadataType.RICH_TEXT)
+    .map(({ icon, label, key }) => {
+      const isSelected =
+        columns.findIndex((column) => {
+          if ('value' in column) {
+            return column.value === key;
+          }
+          return false;
+        }) !== -1;
 
-    return {
-      icon: icon,
-      value: key,
-      label: label,
-      disabled: isSelected,
-    } as const;
-  });
+      return {
+        icon: icon,
+        value: key,
+        label: label,
+        disabled: isSelected,
+      } as const;
+    });
 
   const selectOptions = [
     {

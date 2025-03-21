@@ -1,12 +1,15 @@
-import { act, renderHook } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
+import { act } from 'react';
 import { CallbackInterface, RecoilRoot } from 'recoil';
 
 import { RecordTableComponentInstance } from '@/object-record/record-table/components/RecordTableComponentInstance';
 import { RecordTableCellContext } from '@/object-record/record-table/contexts/RecordTableCellContext';
-import { RecordTableRowContext } from '@/object-record/record-table/contexts/RecordTableRowContext';
+import { RecordTableRowContextProvider } from '@/object-record/record-table/contexts/RecordTableRowContext';
+import { RecordTableRowDraggableContextProvider } from '@/object-record/record-table/contexts/RecordTableRowDraggableContext';
 import {
-  recordTableCell,
-  recordTableRow,
+  recordTableCellContextValue,
+  recordTableRowContextValue,
+  recordTableRowDraggableContextValue,
 } from '@/object-record/record-table/record-table-cell/hooks/__mocks__/cell';
 import { useMoveSoftFocusToCurrentCellOnHover } from '@/object-record/record-table/record-table-cell/hooks/useMoveSoftFocusToCurrentCellOnHover';
 import { TableCellPosition } from '@/object-record/record-table/types/TableCellPosition';
@@ -80,11 +83,15 @@ const Wrapper = ({ children }: { children: React.ReactNode }) => (
       recordTableId="scopeId"
       onColumnsChange={jest.fn()}
     >
-      <RecordTableRowContext.Provider value={recordTableRow}>
-        <RecordTableCellContext.Provider value={recordTableCell}>
-          {children}
-        </RecordTableCellContext.Provider>
-      </RecordTableRowContext.Provider>
+      <RecordTableRowContextProvider value={recordTableRowContextValue}>
+        <RecordTableRowDraggableContextProvider
+          value={recordTableRowDraggableContextValue}
+        >
+          <RecordTableCellContext.Provider value={recordTableCellContextValue}>
+            {children}
+          </RecordTableCellContext.Provider>
+        </RecordTableRowDraggableContextProvider>
+      </RecordTableRowContextProvider>
     </RecordTableComponentInstance>
   </RecoilRoot>
 );
@@ -92,17 +99,15 @@ const Wrapper = ({ children }: { children: React.ReactNode }) => (
 describe('useMoveSoftFocusToCurrentCellOnHover', () => {
   it('should work as expected', () => {
     const { result } = renderHook(
-      () => {
-        return {
-          moveSoftFocusToCurrentCellOnHover:
-            useMoveSoftFocusToCurrentCellOnHover(),
-        };
-      },
+      () => useMoveSoftFocusToCurrentCellOnHover('scopeId'),
       { wrapper: Wrapper },
     );
 
     act(() => {
-      result.current.moveSoftFocusToCurrentCellOnHover();
+      result.current.moveSoftFocusToCurrentCell({
+        column: 3,
+        row: 2,
+      });
     });
 
     expect(mockCallbackInterface.set).toHaveBeenNthCalledWith(

@@ -9,11 +9,12 @@ import { ComponentStateKeyV2 } from '@/ui/utilities/state/component-state/types/
 import { globalComponentInstanceContextMap } from '@/ui/utilities/state/component-state/utils/globalComponentInstanceContextMap';
 import { SelectorGetter } from '@/ui/utilities/state/types/SelectorGetter';
 import { SelectorSetter } from '@/ui/utilities/state/types/SelectorSetter';
-import { isDefined } from 'twenty-ui';
+import { isDefined } from 'twenty-shared';
 
 export function createComponentSelectorV2<ValueType>(options: {
   key: string;
   get: SelectorGetter<ValueType, ComponentStateKeyV2>;
+  set?: never;
   componentInstanceContext: ComponentInstanceStateContext<any> | null;
 }): ComponentReadOnlySelectorV2<ValueType>;
 

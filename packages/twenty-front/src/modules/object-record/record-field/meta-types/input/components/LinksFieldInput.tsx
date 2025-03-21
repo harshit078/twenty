@@ -1,16 +1,21 @@
 import { useLinksField } from '@/object-record/record-field/meta-types/hooks/useLinksField';
 import { LinksFieldMenuItem } from '@/object-record/record-field/meta-types/input/components/LinksFieldMenuItem';
+import { recordFieldInputIsFieldInErrorComponentState } from '@/object-record/record-field/states/recordFieldInputIsFieldInErrorComponentState';
+import { useSetRecoilComponentStateV2 } from '@/ui/utilities/state/component-state/hooks/useSetRecoilComponentStateV2';
 import { useMemo } from 'react';
-import { isDefined } from 'twenty-ui';
+import { absoluteUrlSchema, isDefined } from 'twenty-shared';
 import { FieldMetadataType } from '~/generated-metadata/graphql';
-import { absoluteUrlSchema } from '~/utils/validation-schemas/absoluteUrlSchema';
 import { MultiItemFieldInput } from './MultiItemFieldInput';
 
 type LinksFieldInputProps = {
   onCancel?: () => void;
+  onClickOutside?: (event: MouseEvent | TouchEvent) => void;
 };
 
-export const LinksFieldInput = ({ onCancel }: LinksFieldInputProps) => {
+export const LinksFieldInput = ({
+  onCancel,
+  onClickOutside,
+}: LinksFieldInputProps) => {
   const { persistLinksField, hotkeyScope, fieldValue } = useLinksField();
 
   const links = useMemo<{ url: string; label: string }[]>(
@@ -44,17 +49,27 @@ export const LinksFieldInput = ({ onCancel }: LinksFieldInputProps) => {
 
   const isPrimaryLink = (index: number) => index === 0 && links?.length > 1;
 
+  const setIsFieldInError = useSetRecoilComponentStateV2(
+    recordFieldInputIsFieldInErrorComponentState,
+  );
+
+  const handleError = (hasError: boolean, values: any[]) => {
+    setIsFieldInError(hasError && values.length === 0);
+  };
+
   return (
     <MultiItemFieldInput
       items={links}
       onPersist={handlePersistLinks}
       onCancel={onCancel}
+      onClickOutside={onClickOutside}
       placeholder="URL"
-      fieldMetadataType={FieldMetadataType.Links}
+      fieldMetadataType={FieldMetadataType.LINKS}
       validateInput={(input) => ({
         isValid: absoluteUrlSchema.safeParse(input).success,
         errorMessage: '',
       })}
+      onError={handleError}
       formatInput={(input) => ({ url: input, label: '' })}
       renderItem={({
         value: link,

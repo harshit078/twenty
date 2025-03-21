@@ -1,4 +1,6 @@
-type CacheKey = `${string}-${string}`;
+import { isDefined } from 'twenty-shared';
+
+import { CacheKey } from 'src/engine/twenty-orm/storage/types/cache-key.type';
 
 type AsyncFactoryCallback<T> = () => Promise<T | null>;
 
@@ -12,13 +14,19 @@ export class CacheManager<T> {
   ): Promise<T | null> {
     const [workspaceId] = cacheKey.split('-');
 
-    if (this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey)!;
+    const cachedValue = this.cache.get(cacheKey);
+
+    if (isDefined(cachedValue)) {
+      return cachedValue;
     }
 
     for (const key of this.cache.keys()) {
       if (key.startsWith(`${workspaceId}-`)) {
-        await onDelete?.(this.cache.get(key)!);
+        const cachedValue = this.cache.get(key);
+
+        if (cachedValue) {
+          await onDelete?.(cachedValue);
+        }
         this.cache.delete(key);
       }
     }
@@ -38,10 +46,15 @@ export class CacheManager<T> {
     cacheKey: CacheKey,
     onDelete?: (value: T) => Promise<void> | void,
   ): Promise<void> {
-    if (this.cache.has(cacheKey)) {
-      await onDelete?.(this.cache.get(cacheKey)!);
+    const cachedValue = this.cache.get(cacheKey);
+
+    if (isDefined(cachedValue)) {
+      await onDelete?.(cachedValue);
       this.cache.delete(cacheKey);
     }
+    // TODO: remove this once we have debug on prod
+    // eslint-disable-next-line no-console
+    console.log('Datasource cache size: ', this.cache.size);
   }
 
   async clear(onDelete?: (value: T) => Promise<void> | void): Promise<void> {

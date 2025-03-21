@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import { Card, H2Title, Section, Toggle } from 'twenty-ui';
+import { Card, H2Title, IconBriefcase, IconUsers, Section } from 'twenty-ui';
 
 import {
   MessageChannel,
@@ -9,8 +9,9 @@ import { CoreObjectNameSingular } from '@/object-metadata/types/CoreObjectNameSi
 import { useUpdateOneRecord } from '@/object-record/hooks/useUpdateOneRecord';
 import { SettingsAccountsMessageAutoCreationCard } from '@/settings/accounts/components/SettingsAccountsMessageAutoCreationCard';
 import { SettingsAccountsMessageVisibilityCard } from '@/settings/accounts/components/SettingsAccountsMessageVisibilityCard';
-import { SettingsOptionCardContent } from '@/settings/components/SettingsOptionCardContent';
+import { SettingsOptionCardContentToggle } from '@/settings/components/SettingsOptions/SettingsOptionCardContentToggle';
 import { MessageChannelVisibility } from '~/generated-metadata/graphql';
+import { t } from '@lingui/core/macro';
 
 type SettingsAccountsMessageChannelDetailsProps = {
   messageChannel: Pick<
@@ -28,10 +29,6 @@ const StyledDetailsContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing(6)};
-`;
-
-const StyledToggle = styled(Toggle)`
-  margin-left: auto;
 `;
 
 export const SettingsAccountsMessageChannelDetails = ({
@@ -83,8 +80,8 @@ export const SettingsAccountsMessageChannelDetails = ({
     <StyledDetailsContainer>
       <Section>
         <H2Title
-          title="Visibility"
-          description="Define what will be visible to other users in your workspace"
+          title={t`Visibility`}
+          description={t`Define what will be visible to other users in your workspace`}
         />
         <SettingsAccountsMessageVisibilityCard
           value={messageChannel.visibility}
@@ -93,8 +90,8 @@ export const SettingsAccountsMessageChannelDetails = ({
       </Section>
       <Section>
         <H2Title
-          title="Contact auto-creation"
-          description="Automatically create People records when receiving or sending emails"
+          title={t`Contact auto-creation`}
+          description={t`Automatically create People records when receiving or sending emails`}
         />
         <SettingsAccountsMessageAutoCreationCard
           value={messageChannel.contactAutoCreationPolicy}
@@ -102,30 +99,30 @@ export const SettingsAccountsMessageChannelDetails = ({
         />
       </Section>
       <Section>
-        <Card>
-          <SettingsOptionCardContent
-            title="Exclude non-professional emails"
-            description="Don’t create contacts from/to Gmail, Outlook emails"
+        <Card rounded>
+          <SettingsOptionCardContentToggle
+            Icon={IconBriefcase}
+            title={t`Exclude non-professional emails`}
+            description={t`Don’t create contacts from/to Gmail, Outlook emails`}
             divider
-            onClick={() =>
+            checked={messageChannel.excludeNonProfessionalEmails}
+            onChange={() => {
               handleIsNonProfessionalEmailExcludedToggle(
                 !messageChannel.excludeNonProfessionalEmails,
-              )
-            }
-          >
-            <StyledToggle value={messageChannel.excludeNonProfessionalEmails} />
-          </SettingsOptionCardContent>
-          <SettingsOptionCardContent
-            title="Exclude group emails"
-            description="Don’t sync emails from team@ support@ noreply@..."
-            onClick={() =>
+              );
+            }}
+          />
+          <SettingsOptionCardContentToggle
+            Icon={IconUsers}
+            title={t`Exclude group emails`}
+            description={t`Don’t sync emails from team@ support@ noreply@...`}
+            checked={messageChannel.excludeGroupEmails}
+            onChange={() =>
               handleIsGroupEmailExcludedToggle(
                 !messageChannel.excludeGroupEmails,
               )
             }
-          >
-            <StyledToggle value={messageChannel.excludeGroupEmails} />
-          </SettingsOptionCardContent>
+          />
         </Card>
       </Section>
     </StyledDetailsContainer>

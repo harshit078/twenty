@@ -17,13 +17,24 @@ import { Select } from '@/ui/input/components/Select';
 import { TextInput } from '@/ui/input/components/TextInput';
 import { useIsMobile } from '@/ui/utilities/responsive/hooks/useIsMobile';
 import { RelationDefinitionType } from '~/generated-metadata/graphql';
+import { useLingui } from '@lingui/react/macro';
 
 export const settingsDataModelFieldRelationFormSchema = z.object({
   relation: z.object({
-    field: fieldMetadataItemSchema().pick({
-      icon: true,
-      label: true,
-    }),
+    field: fieldMetadataItemSchema()
+      .pick({
+        icon: true,
+        label: true,
+      })
+      // NOT SURE IF THIS IS CORRECT
+      .merge(
+        fieldMetadataItemSchema()
+          .pick({
+            name: true,
+            isLabelSyncedWithName: true,
+          })
+          .partial(),
+      ),
     objectMetadataId: z.string().uuid(),
     type: z.enum(
       Object.keys(RELATION_TYPES) as [
@@ -70,8 +81,8 @@ const StyledInputsContainer = styled.div`
 const RELATION_TYPE_OPTIONS = Object.entries(RELATION_TYPES)
   .filter(
     ([value]) =>
-      RelationDefinitionType.OneToOne !== value &&
-      RelationDefinitionType.ManyToMany !== value,
+      RelationDefinitionType.ONE_TO_ONE !== value &&
+      RelationDefinitionType.MANY_TO_MANY !== value,
   )
   .map(([value, { label, Icon }]) => ({
     label,
@@ -83,6 +94,7 @@ export const SettingsDataModelFieldRelationForm = ({
   fieldMetadataItem,
   objectMetadataItem,
 }: SettingsDataModelFieldRelationFormProps) => {
+  const { t } = useLingui();
   const { control, watch: watchFormValue } =
     useFormContext<SettingsDataModelFieldRelationFormValues>();
   const { getIcon } = useIcons();
@@ -107,6 +119,11 @@ export const SettingsDataModelFieldRelationForm = ({
     ),
   );
 
+  const selectedRelationType = watchFormValue(
+    'relation.type',
+    initialRelationType,
+  );
+
   const isMobile = useIsMobile();
 
   return (
@@ -118,7 +135,7 @@ export const SettingsDataModelFieldRelationForm = ({
           defaultValue={initialRelationType}
           render={({ field: { onChange, value } }) => (
             <Select
-              label="Relation type"
+              label={t`Relation type`}
               dropdownId="relation-type-select"
               fullWidth
               disabled={disableRelationEdition}
@@ -134,7 +151,7 @@ export const SettingsDataModelFieldRelationForm = ({
           defaultValue={initialRelationObjectMetadataItem.id}
           render={({ field: { onChange, value } }) => (
             <Select
-              label="Object destination"
+              label={t`Object destination`}
               dropdownId="object-destination-select"
               fullWidth
               disabled={disableRelationEdition}
@@ -152,7 +169,10 @@ export const SettingsDataModelFieldRelationForm = ({
         />
       </StyledSelectsContainer>
       <StyledInputsLabel>
-        Field on {selectedObjectMetadataItem?.labelPlural}
+        Field on{' '}
+        {selectedRelationType === RelationDefinitionType.MANY_TO_ONE
+          ? selectedObjectMetadataItem?.labelSingular
+          : selectedObjectMetadataItem?.labelPlural}
       </StyledInputsLabel>
       <StyledInputsContainer>
         <Controller
@@ -176,7 +196,7 @@ export const SettingsDataModelFieldRelationForm = ({
           render={({ field: { onChange, value } }) => (
             <TextInput
               disabled={disableFieldEdition}
-              placeholder="Field name"
+              placeholder={t`Field name`}
               value={value}
               onChange={onChange}
               fullWidth

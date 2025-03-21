@@ -7,6 +7,7 @@ import {
   Avatar,
   Button,
   ComponentDecorator,
+  IconChevronLeft,
   MenuItem,
   MenuItemMultiSelectAvatar,
   MenuItemSelectAvatar,
@@ -15,12 +16,13 @@ import {
 import { DropdownMenuSkeletonItem } from '@/ui/input/relation-picker/components/skeletons/DropdownMenuSkeletonItem';
 
 import { Dropdown } from '../Dropdown';
-import { DropdownMenuHeader } from '../DropdownMenuHeader';
+import { DropdownMenuHeader } from '../DropdownMenuHeader/DropdownMenuHeader';
 import { DropdownMenuInput } from '../DropdownMenuInput';
 import { DropdownMenuItemsContainer } from '../DropdownMenuItemsContainer';
 import { DropdownMenuSearchInput } from '../DropdownMenuSearchInput';
 import { DropdownMenuSeparator } from '../DropdownMenuSeparator';
 import { StyledDropdownMenuSubheader } from '../StyledDropdownMenuSubheader';
+import { DropdownMenuHeaderLeftComponent } from '@/ui/layout/dropdown/components/DropdownMenuHeader/internal/DropdownMenuHeaderLeftComponent';
 
 const meta: Meta<typeof Dropdown> = {
   title: 'UI/Layout/Dropdown/Dropdown',
@@ -82,22 +84,22 @@ export const Empty: Story = {
   play: async () => {
     const canvas = within(document.body);
 
-    const button = await canvas.findByRole('button');
-    userEvent.click(button);
+    const buttons = await canvas.findAllByRole('button');
+    userEvent.click(buttons[0]);
 
     await waitFor(async () => {
       const fakeMenu = await canvas.findByTestId('dropdown-content');
       expect(fakeMenu).toBeInTheDocument();
     });
 
-    userEvent.click(button);
+    userEvent.click(buttons[0]);
 
     await waitFor(async () => {
       const fakeMenu = canvas.queryByTestId('dropdown-content');
       expect(fakeMenu).not.toBeInTheDocument();
     });
 
-    userEvent.click(button);
+    userEvent.click(buttons[0]);
     await waitFor(async () => {
       const fakeMenu = await canvas.findByTestId('dropdown-content');
       expect(fakeMenu).toBeInTheDocument();
@@ -205,8 +207,8 @@ const FakeCheckableMenuItemList = ({ hasAvatar }: { hasAvatar?: boolean }) => {
 const playInteraction: PlayFunction<any, any> = async () => {
   const canvas = within(document.body);
 
-  const button = await canvas.findByRole('button');
-  userEvent.click(button);
+  const buttons = await canvas.findAllByRole('button');
+  userEvent.click(buttons[0]);
 
   await waitFor(async () => {
     expect(canvas.getByText('Company A')).toBeInTheDocument();
@@ -218,21 +220,26 @@ export const WithHeaders: Story = {
   args: {
     dropdownComponents: (
       <>
-        <DropdownMenuHeader>Header</DropdownMenuHeader>
-        <DropdownMenuSeparator />
+        <DropdownMenuHeader
+          StartComponent={
+            <DropdownMenuHeaderLeftComponent Icon={IconChevronLeft} />
+          }
+        >
+          Header
+        </DropdownMenuHeader>
         <StyledDropdownMenuSubheader>Subheader 1</StyledDropdownMenuSubheader>
         <DropdownMenuItemsContainer hasMaxHeight>
           <>
-            {optionsMock.slice(0, 3).map(({ name }) => (
-              <MenuItem text={name} />
+            {optionsMock.slice(0, 3).map((item) => (
+              <MenuItem key={item.id} text={item.name} />
             ))}
           </>
         </DropdownMenuItemsContainer>
         <DropdownMenuSeparator />
         <StyledDropdownMenuSubheader>Subheader 2</StyledDropdownMenuSubheader>
         <DropdownMenuItemsContainer>
-          {optionsMock.slice(3).map(({ name }) => (
-            <MenuItem text={name} />
+          {optionsMock.slice(3).map((item) => (
+            <MenuItem key={item.id} text={item.name} />
           ))}
         </DropdownMenuItemsContainer>
       </>
@@ -257,15 +264,15 @@ export const SearchWithLoadingMenu: Story = {
   play: async () => {
     const canvas = within(document.body);
 
-    const button = await canvas.findByRole('button');
+    const buttons = await canvas.findAllByRole('button');
 
     await waitFor(() => {
-      userEvent.click(button);
+      userEvent.click(buttons[0]);
       expect(canvas.getByDisplayValue('query')).toBeInTheDocument();
     });
 
     await waitFor(() => {
-      userEvent.click(button);
+      userEvent.click(buttons[0]);
       expect(canvas.queryByDisplayValue('query')).not.toBeInTheDocument();
     });
   },
@@ -280,7 +287,7 @@ export const WithInput: Story = {
         <DropdownMenuSeparator />
         <DropdownMenuItemsContainer hasMaxHeight>
           {optionsMock.map(({ name }) => (
-            <MenuItem text={name} />
+            <MenuItem key={name} text={name} />
           ))}
         </DropdownMenuItemsContainer>
       </>

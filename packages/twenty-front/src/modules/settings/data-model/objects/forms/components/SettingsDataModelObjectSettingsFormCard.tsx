@@ -1,16 +1,13 @@
 import styled from '@emotion/styled';
 import { useMemo } from 'react';
-import { useFormContext } from 'react-hook-form';
 
 import { ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { getLabelIdentifierFieldMetadataItem } from '@/object-metadata/utils/getLabelIdentifierFieldMetadataItem';
 import { SettingsDataModelCardTitle } from '@/settings/data-model/components/SettingsDataModelCardTitle';
 import { SettingsDataModelFieldPreviewCard } from '@/settings/data-model/fields/preview/components/SettingsDataModelFieldPreviewCard';
 import { SettingsDataModelObjectSummary } from '@/settings/data-model/objects/components/SettingsDataModelObjectSummary';
-import {
-  SettingsDataModelObjectIdentifiersForm,
-  SettingsDataModelObjectIdentifiersFormValues,
-} from '@/settings/data-model/objects/forms/components/SettingsDataModelObjectIdentifiersForm';
+import { SettingsDataModelObjectIdentifiersForm } from '@/settings/data-model/objects/forms/components/SettingsDataModelObjectIdentifiersForm';
+import { Trans } from '@lingui/react/macro';
 import { Card, CardContent } from 'twenty-ui';
 
 type SettingsDataModelObjectSettingsFormCardProps = {
@@ -38,26 +35,20 @@ const StyledObjectSummaryCardContent = styled(CardContent)`
 export const SettingsDataModelObjectSettingsFormCard = ({
   objectMetadataItem,
 }: SettingsDataModelObjectSettingsFormCardProps) => {
-  const { watch: watchFormValue } =
-    useFormContext<SettingsDataModelObjectIdentifiersFormValues>();
-
-  const labelIdentifierFieldMetadataIdFormValue = watchFormValue(
-    'labelIdentifierFieldMetadataId',
-  );
-
-  const labelIdentifierFieldMetadataItem = useMemo(
-    () =>
-      getLabelIdentifierFieldMetadataItem({
-        fields: objectMetadataItem.fields,
-        labelIdentifierFieldMetadataId: labelIdentifierFieldMetadataIdFormValue,
-      }),
-    [labelIdentifierFieldMetadataIdFormValue, objectMetadataItem],
-  );
+  const labelIdentifierFieldMetadataItem = useMemo(() => {
+    return getLabelIdentifierFieldMetadataItem({
+      fields: objectMetadataItem.fields,
+      labelIdentifierFieldMetadataId:
+        objectMetadataItem.labelIdentifierFieldMetadataId,
+    });
+  }, [objectMetadataItem]);
 
   return (
     <Card fullWidth>
       <StyledTopCardContent divider>
-        <SettingsDataModelCardTitle>Preview</SettingsDataModelCardTitle>
+        <SettingsDataModelCardTitle>
+          <Trans>Preview</Trans>
+        </SettingsDataModelCardTitle>
         {labelIdentifierFieldMetadataItem ? (
           <StyledFieldPreviewCard
             objectMetadataItem={objectMetadataItem}
@@ -77,9 +68,6 @@ export const SettingsDataModelObjectSettingsFormCard = ({
       <CardContent>
         <SettingsDataModelObjectIdentifiersForm
           objectMetadataItem={objectMetadataItem}
-          defaultLabelIdentifierFieldMetadataId={
-            labelIdentifierFieldMetadataItem?.id
-          }
         />
       </CardContent>
     </Card>

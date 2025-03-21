@@ -1,10 +1,13 @@
+import { msg } from '@lingui/core/macro';
+import { FieldMetadataType } from 'twenty-shared';
+
 import { Relation } from 'src/engine/workspace-manager/workspace-sync-metadata/interfaces/relation.interface';
 
-import { FieldMetadataType } from 'src/engine/metadata-modules/field-metadata/field-metadata.entity';
 import { RelationMetadataType } from 'src/engine/metadata-modules/relation-metadata/relation-metadata.entity';
 import { BaseWorkspaceEntity } from 'src/engine/twenty-orm/base.workspace-entity';
 import { WorkspaceEntity } from 'src/engine/twenty-orm/decorators/workspace-entity.decorator';
 import { WorkspaceField } from 'src/engine/twenty-orm/decorators/workspace-field.decorator';
+import { WorkspaceIndex } from 'src/engine/twenty-orm/decorators/workspace-index.decorator';
 import { WorkspaceIsNotAuditLogged } from 'src/engine/twenty-orm/decorators/workspace-is-not-audit-logged.decorator';
 import { WorkspaceIsNullable } from 'src/engine/twenty-orm/decorators/workspace-is-nullable.decorator';
 import { WorkspaceIsSystem } from 'src/engine/twenty-orm/decorators/workspace-is-system.decorator';
@@ -18,25 +21,23 @@ import { ViewWorkspaceEntity } from 'src/modules/view/standard-objects/view.work
 @WorkspaceEntity({
   standardId: STANDARD_OBJECT_IDS.viewSort,
   namePlural: 'viewSorts',
-  labelSingular: 'View Sort',
-  labelPlural: 'View Sorts',
-  description: '(System) View Sorts',
+  labelSingular: msg`View Sort`,
+  labelPlural: msg`View Sorts`,
+  description: msg`(System) View Sorts`,
   icon: STANDARD_OBJECT_ICONS.viewSort,
 })
 @WorkspaceIsNotAuditLogged()
 @WorkspaceIsSystem()
-/*
-TODO: add soon once we've confirmed it's stabled
 @WorkspaceIndex(['fieldMetadataId', 'viewId'], {
   isUnique: true,
   indexWhereClause: '"deletedAt" IS NULL',
-})*/
+})
 export class ViewSortWorkspaceEntity extends BaseWorkspaceEntity {
   @WorkspaceField({
     standardId: VIEW_SORT_STANDARD_FIELD_IDS.fieldMetadataId,
     type: FieldMetadataType.UUID,
-    label: 'Field Metadata Id',
-    description: 'View Sort target field',
+    label: msg`Field Metadata Id`,
+    description: msg`View Sort target field`,
     icon: 'IconTag',
   })
   fieldMetadataId: string;
@@ -44,8 +45,8 @@ export class ViewSortWorkspaceEntity extends BaseWorkspaceEntity {
   @WorkspaceField({
     standardId: VIEW_SORT_STANDARD_FIELD_IDS.direction,
     type: FieldMetadataType.TEXT,
-    label: 'Direction',
-    description: 'View Sort direction',
+    label: msg`Direction`,
+    description: msg`View Sort direction`,
     defaultValue: "'asc'",
   })
   direction: string;
@@ -53,8 +54,8 @@ export class ViewSortWorkspaceEntity extends BaseWorkspaceEntity {
   @WorkspaceRelation({
     standardId: VIEW_SORT_STANDARD_FIELD_IDS.view,
     type: RelationMetadataType.MANY_TO_ONE,
-    label: 'View',
-    description: 'View Sort related view',
+    label: msg`View`,
+    description: msg`View Sort related view`,
     icon: 'IconLayoutCollage',
     inverseSideTarget: () => ViewWorkspaceEntity,
     inverseSideFieldKey: 'viewSorts',

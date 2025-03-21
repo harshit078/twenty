@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import diff from 'microdiff';
+import { FieldMetadataType } from 'twenty-shared';
 
 import {
   ComparatorAction,
@@ -8,10 +9,7 @@ import {
 } from 'src/engine/workspace-manager/workspace-sync-metadata/interfaces/comparator.interface';
 import { ComputedPartialFieldMetadata } from 'src/engine/workspace-manager/workspace-sync-metadata/interfaces/partial-field-metadata.interface';
 
-import {
-  FieldMetadataEntity,
-  FieldMetadataType,
-} from 'src/engine/metadata-modules/field-metadata/field-metadata.entity';
+import { FieldMetadataEntity } from 'src/engine/metadata-modules/field-metadata/field-metadata.entity';
 import { transformMetadataForComparison } from 'src/engine/workspace-manager/workspace-sync-metadata/comparators/utils/transform-metadata-for-comparison.util';
 
 const commonFieldPropertiesToIgnore = [
@@ -26,9 +24,23 @@ const commonFieldPropertiesToIgnore = [
   'gate',
   'asExpression',
   'generatedType',
+  'isLabelSyncedWithName',
 ];
 
 const fieldPropertiesToStringify = ['defaultValue'] as const;
+
+const shouldNotOverrideDefaultValue = (
+  fieldMetadata: FieldMetadataEntity | ComputedPartialFieldMetadata,
+) => {
+  return [
+    FieldMetadataType.BOOLEAN,
+    FieldMetadataType.SELECT,
+    FieldMetadataType.MULTI_SELECT,
+    FieldMetadataType.CURRENCY,
+    FieldMetadataType.PHONES,
+    FieldMetadataType.ADDRESS,
+  ].includes(fieldMetadata.type);
+};
 
 const shouldSkipFieldCreation = (
   standardFieldMetadata: ComputedPartialFieldMetadata | undefined,
@@ -57,16 +69,18 @@ export class WorkspaceFieldComparator {
     const originalFieldMetadataMap = transformMetadataForComparison(
       filteredOriginalFieldCollection,
       {
-        shouldIgnoreProperty: (property, originalMetadata) => {
-          if (commonFieldPropertiesToIgnore.includes(property)) {
+        shouldIgnoreProperty: (
+          property,
+          fieldMetadata: FieldMetadataEntity,
+        ) => {
+          if (
+            property === 'defaultValue' &&
+            shouldNotOverrideDefaultValue(fieldMetadata)
+          ) {
             return true;
           }
 
-          if (
-            originalMetadata &&
-            property === 'defaultValue' &&
-            originalMetadata.type === FieldMetadataType.SELECT
-          ) {
+          if (commonFieldPropertiesToIgnore.includes(property)) {
             return true;
           }
 
@@ -82,16 +96,18 @@ export class WorkspaceFieldComparator {
     const standardFieldMetadataMap = transformMetadataForComparison(
       standardFieldMetadataCollection,
       {
-        shouldIgnoreProperty: (property, originalMetadata) => {
-          if (commonFieldPropertiesToIgnore.includes(property)) {
+        shouldIgnoreProperty: (
+          property,
+          fieldMetadata: ComputedPartialFieldMetadata,
+        ) => {
+          if (
+            property === 'defaultValue' &&
+            shouldNotOverrideDefaultValue(fieldMetadata)
+          ) {
             return true;
           }
 
-          if (
-            originalMetadata &&
-            property === 'defaultValue' &&
-            originalMetadata.type === FieldMetadataType.SELECT
-          ) {
+          if (commonFieldPropertiesToIgnore.includes(property)) {
             return true;
           }
 
@@ -175,7 +191,7 @@ export class WorkspaceFieldComparator {
           if (
             (fieldPropertiesToStringify as readonly string[]).includes(property)
           ) {
-            fieldPropertiesToUpdateMap[id][property] = JSON.parse(
+            fieldPropertiesToUpdateMap[id][property] = this.parseJSONOrString(
               difference.value,
             );
           } else {
@@ -214,5 +230,17 @@ export class WorkspaceFieldComparator {
     }
 
     return result;
+  }
+
+  private parseJSONOrString(value: string | null): string | object | null {
+    if (value === null) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
   }
 }

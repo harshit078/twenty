@@ -1,49 +1,86 @@
-import { H2Title, Section, IconLock, Tag } from 'twenty-ui';
+import styled from '@emotion/styled';
+import { Trans, useLingui } from '@lingui/react/macro';
+import { H2Title, IconLock, Section, Tag } from 'twenty-ui';
 
 import { SettingsPageContainer } from '@/settings/components/SettingsPageContainer';
-import { SettingsReadDocumentationButton } from '@/settings/developers/components/SettingsReadDocumentationButton';
-import { SettingsSSOIdentitiesProvidersListCard } from '@/settings/security/components/SettingsSSOIdentitiesProvidersListCard';
-import { SettingsSecurityOptionsList } from '@/settings/security/components/SettingsSecurityOptionsList';
-import { getSettingsPagePath } from '@/settings/utils/getSettingsPagePath';
+import { SettingsSSOIdentitiesProvidersListCard } from '@/settings/security/components/SSO/SettingsSSOIdentitiesProvidersListCard';
+import { SettingsSecurityAuthProvidersOptionsList } from '@/settings/security/components/SettingsSecurityAuthProvidersOptionsList';
+import { SettingsApprovedAccessDomainsListCard } from '@/settings/security/components/approvedAccessDomains/SettingsApprovedAccessDomainsListCard';
 import { SettingsPath } from '@/types/SettingsPath';
 import { SubMenuTopBarContainer } from '@/ui/layout/page/components/SubMenuTopBarContainer';
+import { useIsFeatureEnabled } from '@/workspace/hooks/useIsFeatureEnabled';
+import { FeatureFlagKey } from '~/generated/graphql';
+import { getSettingsPath } from '~/utils/navigation/getSettingsPath';
+
+const StyledContainer = styled.div`
+  width: 100%;
+`;
+
+const StyledMainContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing(10)};
+  min-height: 200px;
+`;
+
+const StyledSection = styled(Section)`
+  flex-shrink: 0;
+`;
 
 export const SettingsSecurity = () => {
+  const { t } = useLingui();
+
+  const IsApprovedAccessDomainsEnabled = useIsFeatureEnabled(
+    FeatureFlagKey.IsApprovedAccessDomainsEnabled,
+  );
+
   return (
     <SubMenuTopBarContainer
-      title="Security"
-      actionButton={<SettingsReadDocumentationButton />}
+      title={t`Security`}
       links={[
         {
-          children: 'Workspace',
-          href: getSettingsPagePath(SettingsPath.Workspace),
+          children: <Trans>Workspace</Trans>,
+          href: getSettingsPath(SettingsPath.Workspace),
         },
-        { children: 'Security' },
+        { children: <Trans>Security</Trans> },
       ]}
     >
       <SettingsPageContainer>
-        <Section>
-          <H2Title
-            title="SSO"
-            description="Configure an SSO connection"
-            addornment={
-              <Tag
-                text={'Enterprise'}
-                color={'transparent'}
-                Icon={IconLock}
-                variant={'border'}
+        <StyledMainContent>
+          <StyledSection>
+            <H2Title
+              title={t`SSO`}
+              description={t`Configure an SSO connection`}
+              adornment={
+                <Tag
+                  text={t`Enterprise`}
+                  color={'transparent'}
+                  Icon={IconLock}
+                  variant={'border'}
+                />
+              }
+            />
+            <SettingsSSOIdentitiesProvidersListCard />
+          </StyledSection>
+          {IsApprovedAccessDomainsEnabled && (
+            <StyledSection>
+              <H2Title
+                title={t`Approved Domains`}
+                description={t`Anyone with an email address at these domains is allowed to sign up for this workspace.`}
               />
-            }
-          />
-          <SettingsSSOIdentitiesProvidersListCard />
-        </Section>
-        <Section>
-          <H2Title
-            title="Other"
-            description="Customize your workspace security"
-          />
-          <SettingsSecurityOptionsList />
-        </Section>
+              <SettingsApprovedAccessDomainsListCard />
+            </StyledSection>
+          )}
+          <Section>
+            <StyledContainer>
+              <H2Title
+                title={t`Authentication`}
+                description={t`Customize your workspace security`}
+              />
+              <SettingsSecurityAuthProvidersOptionsList />
+            </StyledContainer>
+          </Section>
+        </StyledMainContent>
       </SettingsPageContainer>
     </SubMenuTopBarContainer>
   );

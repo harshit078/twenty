@@ -1,6 +1,20 @@
+import { FieldContext } from '@/object-record/record-field/contexts/FieldContext';
+import { recordFieldInputIsFieldInErrorComponentState } from '@/object-record/record-field/states/recordFieldInputIsFieldInErrorComponentState';
+import { recordFieldInputLayoutDirectionComponentState } from '@/object-record/record-field/states/recordFieldInputLayoutDirectionComponentState';
+import { recordFieldInputLayoutDirectionLoadingComponentState } from '@/object-record/record-field/states/recordFieldInputLayoutDirectionLoadingComponentState';
 import { RecordInlineCellContext } from '@/object-record/record-inline-cell/components/RecordInlineCellContext';
+import { getRecordFieldInputId } from '@/object-record/utils/getRecordFieldInputId';
+import { OverlayContainer } from '@/ui/layout/overlay/components/OverlayContainer';
+import { useRecoilComponentValueV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValueV2';
+import { useSetRecoilComponentStateV2 } from '@/ui/utilities/state/component-state/hooks/useSetRecoilComponentStateV2';
 import styled from '@emotion/styled';
-import { autoUpdate, flip, offset, useFloating } from '@floating-ui/react';
+import {
+  MiddlewareState,
+  autoUpdate,
+  flip,
+  offset,
+  useFloating,
+} from '@floating-ui/react';
 import { useContext } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -11,29 +25,49 @@ const StyledInlineCellEditModeContainer = styled.div`
   width: 100%;
   position: absolute;
   height: 24px;
-`;
 
-const StyledInlineCellInput = styled.div`
-  align-items: center;
-  display: flex;
-
-  min-height: 32px;
-  min-width: 240px;
-
-  width: inherit;
-
-  z-index: 1000;
+  background: transparent;
 `;
 
 type RecordInlineCellEditModeProps = {
   children: React.ReactNode;
 };
 
-// TODO: Refactor this to avoid setting absolute px values.
 export const RecordInlineCellEditMode = ({
   children,
 }: RecordInlineCellEditModeProps) => {
   const { isCentered } = useContext(RecordInlineCellContext);
+  const { recordId, fieldDefinition } = useContext(FieldContext);
+
+  const instanceId = getRecordFieldInputId(
+    recordId,
+    fieldDefinition?.metadata?.fieldName,
+  );
+
+  const setFieldInputLayoutDirection = useSetRecoilComponentStateV2(
+    recordFieldInputLayoutDirectionComponentState,
+    instanceId,
+  );
+
+  const setFieldInputLayoutDirectionLoading = useSetRecoilComponentStateV2(
+    recordFieldInputLayoutDirectionLoadingComponentState,
+    instanceId,
+  );
+
+  const setFieldInputLayoutDirectionMiddleware = {
+    name: 'middleware',
+    fn: async (state: MiddlewareState) => {
+      setFieldInputLayoutDirection(
+        state.placement.startsWith('bottom') ? 'downward' : 'upward',
+      );
+      setFieldInputLayoutDirectionLoading(false);
+      return {};
+    },
+  };
+
+  const isFieldInError = useRecoilComponentValueV2(
+    recordFieldInputIsFieldInErrorComponentState,
+  );
 
   const { refs, floatingStyles } = useFloating({
     placement: isCentered ? 'bottom' : 'bottom-start',
@@ -46,10 +80,11 @@ export const RecordInlineCellEditMode = ({
               crossAxis: 0,
             }
           : {
-              mainAxis: -28,
-              crossAxis: -4,
+              mainAxis: -29,
+              crossAxis: -5,
             },
       ),
+      setFieldInputLayoutDirectionMiddleware,
     ],
     whileElementsMounted: autoUpdate,
   });
@@ -60,9 +95,14 @@ export const RecordInlineCellEditMode = ({
       data-testid="inline-cell-edit-mode-container"
     >
       {createPortal(
-        <StyledInlineCellInput ref={refs.setFloating} style={floatingStyles}>
+        <OverlayContainer
+          ref={refs.setFloating}
+          style={floatingStyles}
+          borderRadius="sm"
+          hasDangerBorder={isFieldInError}
+        >
           {children}
-        </StyledInlineCellInput>,
+        </OverlayContainer>,
         document.body,
       )}
     </StyledInlineCellEditModeContainer>

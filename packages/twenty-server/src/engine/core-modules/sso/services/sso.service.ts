@@ -6,13 +6,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Issuer } from 'openid-client';
 import { Repository } from 'typeorm';
 
-import { InjectCacheStorage } from 'src/engine/core-modules/cache-storage/decorators/cache-storage.decorator';
-import { CacheStorageService } from 'src/engine/core-modules/cache-storage/services/cache-storage.service';
-import { CacheStorageNamespace } from 'src/engine/core-modules/cache-storage/types/cache-storage-namespace.enum';
+import { BillingEntitlementKey } from 'src/engine/core-modules/billing/enums/billing-entitlement-key.enum';
+import { BillingService } from 'src/engine/core-modules/billing/services/billing.service';
 import { EnvironmentService } from 'src/engine/core-modules/environment/environment.service';
-import { FeatureFlagKey } from 'src/engine/core-modules/feature-flag/enums/feature-flag-key.enum';
-import { FeatureFlagEntity } from 'src/engine/core-modules/feature-flag/feature-flag.entity';
-import { FindAvailableSSOIDPOutput } from 'src/engine/core-modules/sso/dtos/find-available-SSO-IDP.output';
 import {
   SSOException,
   SSOExceptionCode,
@@ -27,34 +23,40 @@ import {
   OIDCResponseType,
   WorkspaceSSOIdentityProvider,
 } from 'src/engine/core-modules/sso/workspace-sso-identity-provider.entity';
-import { User } from 'src/engine/core-modules/user/user.entity';
+import { ExceptionHandlerService } from 'src/engine/core-modules/exception-handler/exception-handler.service';
 
 @Injectable()
-// eslint-disable-next-line @nx/workspace-inject-workspace-repository
 export class SSOService {
+  private readonly featureLookUpKey = BillingEntitlementKey.SSO;
   constructor(
-    @InjectRepository(FeatureFlagEntity, 'core')
-    private readonly featureFlagRepository: Repository<FeatureFlagEntity>,
     @InjectRepository(WorkspaceSSOIdentityProvider, 'core')
     private readonly workspaceSSOIdentityProviderRepository: Repository<WorkspaceSSOIdentityProvider>,
-    @InjectRepository(User, 'core')
-    private readonly userRepository: Repository<User>,
     private readonly environmentService: EnvironmentService,
-    @InjectCacheStorage(CacheStorageNamespace.EngineWorkspace)
-    private readonly cacheStorageService: CacheStorageService,
+    private readonly billingService: BillingService,
+    private readonly exceptionHandlerService: ExceptionHandlerService,
   ) {}
 
   private async isSSOEnabled(workspaceId: string) {
-    const isSSOEnabledFeatureFlag = await this.featureFlagRepository.findOneBy({
+    const isSSOBillingEnabled = await this.billingService.hasEntitlement(
       workspaceId,
-      key: FeatureFlagKey.IsSSOEnabled,
-      value: true,
-    });
+      this.featureLookUpKey,
+    );
 
-    if (!isSSOEnabledFeatureFlag?.value) {
+    if (!isSSOBillingEnabled) {
       throw new SSOException(
-        `${FeatureFlagKey.IsSSOEnabled} feature flag is disabled`,
+        `No entitlement found for this workspace`,
         SSOExceptionCode.SSO_DISABLE,
+      );
+    }
+  }
+
+  private async getIssuerForOIDC(issuerUrl: string) {
+    try {
+      return await Issuer.discover(issuerUrl);
+    } catch (err) {
+      throw new SSOException(
+        'Invalid issuer',
+        SSOExceptionCode.INVALID_ISSUER_URL,
       );
     }
   }
@@ -69,21 +71,7 @@ export class SSOService {
     try {
       await this.isSSOEnabled(workspaceId);
 
-      if (!data.issuer) {
-        throw new SSOException(
-          'Invalid issuer URL',
-          SSOExceptionCode.INVALID_ISSUER_URL,
-        );
-      }
-
-      const issuer = await Issuer.discover(data.issuer);
-
-      if (!issuer.metadata.issuer) {
-        throw new SSOException(
-          'Invalid issuer URL from discovery',
-          SSOExceptionCode.INVALID_ISSUER_URL,
-        );
-      }
+      const issuer = await this.getIssuerForOIDC(data.issuer);
 
       const identityProvider =
         await this.workspaceSSOIdentityProviderRepository.save({
@@ -106,6 +94,8 @@ export class SSOService {
       if (err instanceof SSOException) {
         return err;
       }
+
+      this.exceptionHandlerService.captureExceptions([err]);
 
       return new SSOException(
         'Unknown SSO configuration error',
@@ -139,67 +129,42 @@ export class SSOService {
     };
   }
 
-  async findAvailableSSOIdentityProviders(email: string) {
-    const user = await this.userRepository.findOne({
-      where: { email },
-      relations: [
-        'workspaces',
-        'workspaces.workspace',
-        'workspaces.workspace.workspaceSSOIdentityProviders',
-      ],
-    });
-
-    if (!user) {
-      throw new SSOException('User not found', SSOExceptionCode.USER_NOT_FOUND);
-    }
-
-    return user.workspaces.flatMap((userWorkspace) =>
-      (
-        userWorkspace.workspace
-          .workspaceSSOIdentityProviders as Array<SSOConfiguration>
-      ).reduce((acc, identityProvider) => {
-        if (identityProvider.status === 'Inactive') return acc;
-
-        acc.push({
-          id: identityProvider.id,
-          name: identityProvider.name ?? 'Unknown',
-          issuer: identityProvider.issuer,
-          type: identityProvider.type,
-          status: identityProvider.status,
-          workspace: {
-            id: userWorkspace.workspaceId,
-            displayName: userWorkspace.workspace.displayName,
-          },
-        });
-
-        return acc;
-      }, [] as Array<FindAvailableSSOIDPOutput>),
-    );
-  }
-
-  async findSSOIdentityProviderById(identityProviderId?: string) {
-    // if identityProviderId is not provide, typeorm return a random idp instead of undefined
-    if (!identityProviderId) return undefined;
-
+  async findSSOIdentityProviderById(identityProviderId: string) {
     return (await this.workspaceSSOIdentityProviderRepository.findOne({
       where: { id: identityProviderId },
-    })) as (SSOConfiguration & WorkspaceSSOIdentityProvider) | undefined;
+      relations: ['workspace'],
+    })) as (SSOConfiguration & WorkspaceSSOIdentityProvider) | null;
   }
 
   buildCallbackUrl(
-    identityProvider: Pick<WorkspaceSSOIdentityProvider, 'type'>,
+    identityProvider: Pick<WorkspaceSSOIdentityProvider, 'type' | 'id'>,
   ) {
     const callbackURL = new URL(this.environmentService.get('SERVER_URL'));
 
     callbackURL.pathname = `/auth/${identityProvider.type.toLowerCase()}/callback`;
+
+    if (identityProvider.type === IdentityProviderType.SAML) {
+      callbackURL.pathname += `/${identityProvider.id}`;
+    }
 
     return callbackURL.toString();
   }
 
   buildIssuerURL(
     identityProvider: Pick<WorkspaceSSOIdentityProvider, 'id' | 'type'>,
+    searchParams?: Record<string, string | boolean>,
   ) {
-    return `${this.environmentService.get('SERVER_URL')}/auth/${identityProvider.type.toLowerCase()}/login/${identityProvider.id}`;
+    const authorizationUrl = new URL(this.environmentService.get('SERVER_URL'));
+
+    authorizationUrl.pathname = `/auth/${identityProvider.type.toLowerCase()}/login/${identityProvider.id}`;
+
+    if (searchParams) {
+      Object.entries(searchParams).forEach(([key, value]) => {
+        authorizationUrl.searchParams.append(key, value.toString());
+      });
+    }
+
+    return authorizationUrl.toString();
   }
 
   private isOIDCIdentityProvider(
@@ -233,7 +198,10 @@ export class SSOService {
     });
   }
 
-  async getAuthorizationUrl(identityProviderId: string) {
+  async getAuthorizationUrlForSSO(
+    identityProviderId: string,
+    searchParams: Record<string, string | boolean>,
+  ) {
     const identityProvider =
       (await this.workspaceSSOIdentityProviderRepository.findOne({
         where: {
@@ -250,12 +218,12 @@ export class SSOService {
 
     return {
       id: identityProvider.id,
-      authorizationURL: this.buildIssuerURL(identityProvider),
+      authorizationURL: this.buildIssuerURL(identityProvider, searchParams),
       type: identityProvider.type,
     };
   }
 
-  async listSSOIdentityProvidersByWorkspaceId(workspaceId: string) {
+  async getSSOIdentityProviders(workspaceId: string) {
     return (await this.workspaceSSOIdentityProviderRepository.find({
       where: { workspaceId },
       select: ['id', 'name', 'type', 'issuer', 'status'],

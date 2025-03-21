@@ -8,12 +8,12 @@ import {
   NavigationDrawerProps,
 } from '@/ui/navigation/navigation-drawer/components/NavigationDrawer';
 import { isAdvancedModeEnabledState } from '@/ui/navigation/navigation-drawer/states/isAdvancedModeEnabledState';
-import { getImageAbsoluteURI } from '~/utils/image/getImageAbsoluteURI';
 
 import { useIsSettingsDrawer } from '@/navigation/hooks/useIsSettingsDrawer';
 
+import { MainNavigationDrawerItems } from '@/navigation/components/MainNavigationDrawerItems';
+import { useLingui } from '@lingui/react/macro';
 import { AdvancedSettingsToggle } from 'twenty-ui';
-import { MainNavigationDrawerItems } from './MainNavigationDrawerItems';
 
 export type AppNavigationDrawerProps = {
   className?: string;
@@ -29,23 +29,22 @@ export const AppNavigationDrawer = ({
     isAdvancedModeEnabledState,
   );
 
+  const { t } = useLingui();
+
   const drawerProps: NavigationDrawerProps = isSettingsDrawer
     ? {
-        title: 'Exit Settings',
+        title: t`Exit Settings`,
         children: <SettingsNavigationDrawerItems />,
         footer: (
           <AdvancedSettingsToggle
             isAdvancedModeEnabled={isAdvancedModeEnabled}
             setIsAdvancedModeEnabled={setIsAdvancedModeEnabled}
+            label={t`Advanced:`}
           />
         ),
       }
     : {
-        logo:
-          (currentWorkspace?.logo &&
-            getImageAbsoluteURI(currentWorkspace.logo)) ??
-          undefined,
-        title: currentWorkspace?.displayName ?? undefined,
+        title: currentWorkspace?.displayName ?? '',
         children: <MainNavigationDrawerItems />,
         footer: <SupportDropdown />,
       };
@@ -53,7 +52,6 @@ export const AppNavigationDrawer = ({
   return (
     <NavigationDrawer
       className={className}
-      logo={drawerProps.logo}
       title={drawerProps.title}
       footer={drawerProps.footer}
     >

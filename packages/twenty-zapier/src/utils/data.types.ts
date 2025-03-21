@@ -1,6 +1,6 @@
-export type InputData = { [x: string]: any };
+import { FieldMetadataType } from 'twenty-shared';
 
-export type ObjectData = { id: string } | { [x: string]: any };
+export type InputData = { [x: string]: any };
 
 export type NodeField = {
   type: FieldMetadataType;
@@ -33,37 +33,6 @@ export type InputField = {
   list?: boolean;
   placeholder?: string;
 };
-
-export enum FieldMetadataType {
-  UUID = 'UUID',
-  TEXT = 'TEXT',
-  PHONE = 'PHONE',
-  PHONES = 'PHONES',
-  EMAIL = 'EMAIL',
-  EMAILS = 'EMAILS',
-  DATE_TIME = 'DATE_TIME',
-  DATE = 'DATE',
-  BOOLEAN = 'BOOLEAN',
-  NUMBER = 'NUMBER',
-  NUMERIC = 'NUMERIC',
-  LINK = 'LINK',
-  LINKS = 'LINKS',
-  CURRENCY = 'CURRENCY',
-  FULL_NAME = 'FULL_NAME',
-  RATING = 'RATING',
-  SELECT = 'SELECT',
-  MULTI_SELECT = 'MULTI_SELECT',
-  POSITION = 'POSITION',
-  ADDRESS = 'ADDRESS',
-  RICH_TEXT = 'RICH_TEXT',
-  ARRAY = 'ARRAY',
-
-  // Ignored fieldTypes
-  RELATION = 'RELATION',
-  RAW_JSON = 'RAW_JSON',
-  ACTOR = 'ACTOR',
-  TS_VECTOR = 'TS_VECTOR',
-}
 
 export type Schema = {
   data: {

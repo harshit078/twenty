@@ -1,7 +1,7 @@
-import { useRecoilValue } from 'recoil';
-
-import { useRecordBoardStates } from '@/object-record/record-board/hooks/internal/useRecordBoardStates';
 import { RecordBoardColumnHeaderWrapper } from '@/object-record/record-board/record-board-column/components/RecordBoardColumnHeaderWrapper';
+import { visibleRecordGroupIdsComponentFamilySelector } from '@/object-record/record-group/states/selectors/visibleRecordGroupIdsComponentFamilySelector';
+import { useRecoilComponentFamilyValueV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentFamilyValueV2';
+import { ViewType } from '@/views/types/ViewType';
 import styled from '@emotion/styled';
 
 const StyledHeaderContainer = styled.div`
@@ -24,14 +24,18 @@ const StyledHeaderContainer = styled.div`
 `;
 
 export const RecordBoardHeader = () => {
-  const { columnIdsState } = useRecordBoardStates();
-
-  const columnIds = useRecoilValue(columnIdsState);
+  const visibleRecordGroupIds = useRecoilComponentFamilyValueV2(
+    visibleRecordGroupIdsComponentFamilySelector,
+    ViewType.Kanban,
+  );
 
   return (
     <StyledHeaderContainer id="record-board-header">
-      {columnIds.map((columnId) => (
-        <RecordBoardColumnHeaderWrapper columnId={columnId} key={columnId} />
+      {visibleRecordGroupIds.map((recordGroupId) => (
+        <RecordBoardColumnHeaderWrapper
+          columnId={recordGroupId}
+          key={recordGroupId}
+        />
       ))}
     </StyledHeaderContainer>
   );

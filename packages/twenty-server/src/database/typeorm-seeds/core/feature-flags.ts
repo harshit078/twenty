@@ -36,22 +36,7 @@ export const seedFeatureFlags = async (
         value: true,
       },
       {
-        key: FeatureFlagKey.IsFunctionSettingsEnabled,
-        workspaceId: workspaceId,
-        value: true,
-      },
-      {
         key: FeatureFlagKey.IsWorkflowEnabled,
-        workspaceId: workspaceId,
-        value: true,
-      },
-      {
-        key: FeatureFlagKey.IsMessageThreadSubscriberEnabled,
-        workspaceId: workspaceId,
-        value: false,
-      },
-      {
-        key: FeatureFlagKey.IsWorkspaceFavoriteEnabled,
         workspaceId: workspaceId,
         value: true,
       },
@@ -61,12 +46,12 @@ export const seedFeatureFlags = async (
         value: true,
       },
       {
-        key: FeatureFlagKey.IsSSOEnabled,
+        key: FeatureFlagKey.IsCustomDomainEnabled,
         workspaceId: workspaceId,
-        value: true,
+        value: false,
       },
       {
-        key: FeatureFlagKey.IsGmailSendEmailScopeEnabled,
+        key: FeatureFlagKey.IsApprovedAccessDomainsEnabled,
         workspaceId: workspaceId,
         value: true,
       },
@@ -76,14 +61,19 @@ export const seedFeatureFlags = async (
         value: false,
       },
       {
-        key: FeatureFlagKey.IsMicrosoftSyncEnabled,
-        workspaceId: workspaceId,
-        value: true,
-      },
-      {
         key: FeatureFlagKey.IsAdvancedFiltersEnabled,
         workspaceId: workspaceId,
         value: false,
+      },
+      {
+        key: FeatureFlagKey.IsNewRelationEnabled,
+        workspaceId: workspaceId,
+        value: false,
+      },
+      {
+        key: FeatureFlagKey.IsWorkflowFormActionEnabled,
+        workspaceId: workspaceId,
+        value: true,
       },
     ])
     .execute();

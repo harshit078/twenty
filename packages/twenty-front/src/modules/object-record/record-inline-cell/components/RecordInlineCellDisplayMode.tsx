@@ -9,6 +9,7 @@ import {
   useRecordInlineCellContext,
 } from '@/object-record/record-inline-cell/components/RecordInlineCellContext';
 import { RecordInlineCellButton } from '@/object-record/record-inline-cell/components/RecordInlineCellEditButton';
+import { useLingui } from '@lingui/react/macro';
 
 const StyledRecordInlineCellNormalModeOuterContainer = styled.div<
   Pick<
@@ -23,8 +24,8 @@ const StyledRecordInlineCellNormalModeOuterContainer = styled.div<
     isDisplayModeFixHeight ? '16px' : 'auto'};
   min-height: 16px;
   overflow: hidden;
-  padding: ${({ theme }) => theme.spacing(1)};
-
+  padding-right: ${({ theme }) => theme.spacing(1)};
+  padding-left: ${({ theme }) => theme.spacing(1)};
   ${(props) => {
     if (props.isHovered === true) {
       return css`
@@ -39,15 +40,15 @@ const StyledRecordInlineCellNormalModeOuterContainer = styled.div<
 `;
 
 const StyledRecordInlineCellNormalModeInnerContainer = styled.div`
+  align-content: center;
   align-items: center;
   color: ${({ theme }) => theme.font.color.primary};
-  font-size: 'inherit';
-  font-weight: 'inherit';
+  padding-top: 3px;
+  padding-bottom: 3px;
 
   height: fit-content;
 
   overflow: hidden;
-
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -60,6 +61,8 @@ export const RecordInlineCellDisplayMode = ({
   children,
 }: React.PropsWithChildren<unknown>) => {
   const { isFocused } = useFieldFocus();
+
+  const { t } = useLingui();
 
   const {
     editModeContentOnly,
@@ -80,7 +83,7 @@ export const RecordInlineCellDisplayMode = ({
 
   const shouldDisplayEditModeOnFocus = isFocused && isFieldInputOnly;
 
-  const emptyPlaceHolder = showLabel ? 'Empty' : label;
+  const emptyPlaceHolder = showLabel ? t`Empty` : label;
 
   return (
     <>

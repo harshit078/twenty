@@ -1,95 +1,124 @@
 import { Injectable } from '@nestjs/common';
 
+import { WorkflowExecutor } from 'src/modules/workflow/workflow-executor/interfaces/workflow-executor.interface';
+
+import { BILLING_FEATURE_USED } from 'src/engine/core-modules/billing/constants/billing-feature-used.constant';
+import { BillingMeterEventName } from 'src/engine/core-modules/billing/enums/billing-meter-event-names';
+import { BillingUsageEvent } from 'src/engine/core-modules/billing/types/billing-usage-event.type';
+import { ScopedWorkspaceContextFactory } from 'src/engine/twenty-orm/factories/scoped-workspace-context.factory';
+import { WorkspaceEventEmitter } from 'src/engine/workspace-event-emitter/workspace-event-emitter';
 import {
+  StepOutput,
   WorkflowRunOutput,
   WorkflowRunStatus,
 } from 'src/modules/workflow/common/standard-objects/workflow-run.workspace-entity';
-import { WorkflowActionFactory } from 'src/modules/workflow/workflow-executor/factories/workflow-action.factory';
-import { WorkflowStep } from 'src/modules/workflow/workflow-executor/types/workflow-action.type';
-import { resolveInput } from 'src/modules/workflow/workflow-executor/utils/variable-resolver.util';
+import { WorkflowExecutorFactory } from 'src/modules/workflow/workflow-executor/factories/workflow-executor.factory';
+import { WorkflowExecutorInput } from 'src/modules/workflow/workflow-executor/types/workflow-executor-input';
+import { WorkflowExecutorOutput } from 'src/modules/workflow/workflow-executor/types/workflow-executor-output.type';
+import { WorkflowRunWorkspaceService } from 'src/modules/workflow/workflow-runner/workflow-run/workflow-run.workspace-service';
 
 const MAX_RETRIES_ON_FAILURE = 3;
 
-export type WorkflowExecutorOutput = {
-  steps: WorkflowRunOutput['steps'];
+export type WorkflowExecutorState = {
+  stepsOutput: WorkflowRunOutput['stepsOutput'];
   status: WorkflowRunStatus;
 };
 
 @Injectable()
-export class WorkflowExecutorWorkspaceService {
-  constructor(private readonly workflowActionFactory: WorkflowActionFactory) {}
+export class WorkflowExecutorWorkspaceService implements WorkflowExecutor {
+  constructor(
+    private readonly workflowExecutorFactory: WorkflowExecutorFactory,
+    private readonly workspaceEventEmitter: WorkspaceEventEmitter,
+    private readonly scopedWorkspaceContextFactory: ScopedWorkspaceContextFactory,
+    private readonly workflowRunWorkspaceService: WorkflowRunWorkspaceService,
+  ) {}
 
   async execute({
     currentStepIndex,
     steps,
     context,
-    output,
     attemptCount = 1,
-  }: {
-    currentStepIndex: number;
-    steps: WorkflowStep[];
-    output: WorkflowExecutorOutput;
-    context: Record<string, unknown>;
-    attemptCount?: number;
-  }): Promise<WorkflowExecutorOutput> {
+    workflowRunId,
+  }: WorkflowExecutorInput): Promise<WorkflowExecutorOutput> {
     if (currentStepIndex >= steps.length) {
-      return { ...output, status: WorkflowRunStatus.COMPLETED };
+      return {
+        result: {
+          success: true,
+        },
+      };
     }
 
     const step = steps[currentStepIndex];
 
-    const workflowAction = this.workflowActionFactory.get(step.type);
+    const workflowExecutor = this.workflowExecutorFactory.get(step.type);
 
-    const actionPayload = resolveInput(step.settings.input, context);
+    let actionOutput: WorkflowExecutorOutput;
 
-    const result = await workflowAction.execute(actionPayload);
+    try {
+      actionOutput = await workflowExecutor.execute({
+        currentStepIndex,
+        steps,
+        context,
+        attemptCount,
+        workflowRunId,
+      });
+    } catch (error) {
+      actionOutput = {
+        error: error.message ?? 'Execution result error, no data or error',
+      };
+    }
 
-    const stepOutput = output.steps[step.id];
+    if (!actionOutput.error) {
+      this.sendWorkflowNodeRunEvent();
+    }
 
-    const error =
-      result.error?.errorMessage ??
-      (result.result ? undefined : 'Execution result error, no data or error');
-
-    const updatedStepOutput = {
+    const stepOutput: StepOutput = {
       id: step.id,
-      name: step.name,
-      type: step.type,
-      outputs: [
-        ...(stepOutput?.outputs ?? []),
-        {
-          attemptCount,
-          result: result.result,
-          error,
-        },
-      ],
+      output: actionOutput,
     };
 
-    const updatedOutput = {
-      ...output,
-      steps: {
-        ...output.steps,
-        [step.id]: updatedStepOutput,
-      },
-    };
+    if (actionOutput.pendingEvent) {
+      await this.workflowRunWorkspaceService.saveWorkflowRunState({
+        workflowRunId,
+        stepOutput,
+        context,
+      });
 
-    if (result.result) {
+      return actionOutput;
+    }
+
+    if (actionOutput.result) {
+      const updatedContext = {
+        ...context,
+        [step.id]: actionOutput.result,
+      };
+
+      await this.workflowRunWorkspaceService.saveWorkflowRunState({
+        workflowRunId,
+        stepOutput,
+        context: updatedContext,
+      });
+
       return await this.execute({
+        workflowRunId,
         currentStepIndex: currentStepIndex + 1,
         steps,
-        context: {
-          ...context,
-          [step.id]: result.result,
-        },
-        output: updatedOutput,
+        context: updatedContext,
       });
     }
 
     if (step.settings.errorHandlingOptions.continueOnFailure.value) {
+      await this.workflowRunWorkspaceService.saveWorkflowRunState({
+        workflowRunId,
+        stepOutput,
+        context,
+      });
+
       return await this.execute({
+        workflowRunId,
         currentStepIndex: currentStepIndex + 1,
         steps,
         context,
-        output: updatedOutput,
       });
     }
 
@@ -98,14 +127,36 @@ export class WorkflowExecutorWorkspaceService {
       attemptCount < MAX_RETRIES_ON_FAILURE
     ) {
       return await this.execute({
+        workflowRunId,
         currentStepIndex,
         steps,
         context,
-        output: updatedOutput,
         attemptCount: attemptCount + 1,
       });
     }
 
-    return { ...updatedOutput, status: WorkflowRunStatus.FAILED };
+    await this.workflowRunWorkspaceService.saveWorkflowRunState({
+      workflowRunId,
+      stepOutput,
+      context,
+    });
+
+    return actionOutput;
+  }
+
+  private sendWorkflowNodeRunEvent() {
+    const workspaceId =
+      this.scopedWorkspaceContextFactory.create().workspaceId ?? '';
+
+    this.workspaceEventEmitter.emitCustomBatchEvent<BillingUsageEvent>(
+      BILLING_FEATURE_USED,
+      [
+        {
+          eventName: BillingMeterEventName.WORKFLOW_NODE_RUN,
+          value: 1,
+        },
+      ],
+      workspaceId,
+    );
   }
 }

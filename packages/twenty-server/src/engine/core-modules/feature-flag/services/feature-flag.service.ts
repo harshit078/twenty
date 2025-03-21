@@ -6,13 +6,19 @@ import { Repository } from 'typeorm';
 import { FeatureFlagMap } from 'src/engine/core-modules/feature-flag/interfaces/feature-flag-map.interface';
 
 import { FeatureFlagKey } from 'src/engine/core-modules/feature-flag/enums/feature-flag-key.enum';
-import { FeatureFlagEntity } from 'src/engine/core-modules/feature-flag/feature-flag.entity';
+import { FeatureFlag } from 'src/engine/core-modules/feature-flag/feature-flag.entity';
+import {
+  FeatureFlagException,
+  FeatureFlagExceptionCode,
+} from 'src/engine/core-modules/feature-flag/feature-flag.exception';
+import { featureFlagValidator } from 'src/engine/core-modules/feature-flag/validates/feature-flag.validate';
+import { publicFeatureFlagValidator } from 'src/engine/core-modules/feature-flag/validates/is-public-feature-flag.validate';
 
 @Injectable()
 export class FeatureFlagService {
   constructor(
-    @InjectRepository(FeatureFlagEntity, 'core')
-    private readonly featureFlagRepository: Repository<FeatureFlagEntity>,
+    @InjectRepository(FeatureFlag, 'core')
+    private readonly featureFlagRepository: Repository<FeatureFlag>,
   ) {}
 
   public async isFeatureEnabled(
@@ -30,10 +36,15 @@ export class FeatureFlagService {
 
   public async getWorkspaceFeatureFlags(
     workspaceId: string,
+  ): Promise<FeatureFlag[]> {
+    return this.featureFlagRepository.find({ where: { workspaceId } });
+  }
+
+  public async getWorkspaceFeatureFlagsMap(
+    workspaceId: string,
   ): Promise<FeatureFlagMap> {
-    const workspaceFeatureFlags = await this.featureFlagRepository.find({
-      where: { workspaceId },
-    });
+    const workspaceFeatureFlags =
+      await this.getWorkspaceFeatureFlags(workspaceId);
 
     const workspaceFeatureFlagsMap = workspaceFeatureFlags.reduce(
       (result, currentFeatureFlag) => {
@@ -58,5 +69,57 @@ export class FeatureFlagService {
         skipUpdateIfNoValuesChanged: true,
       },
     );
+  }
+
+  public async upsertWorkspaceFeatureFlag({
+    workspaceId,
+    featureFlag,
+    value,
+    shouldBePublic = false,
+  }: {
+    workspaceId: string;
+    featureFlag: FeatureFlagKey;
+    value: boolean;
+    shouldBePublic?: boolean;
+  }): Promise<FeatureFlag> {
+    featureFlagValidator.assertIsFeatureFlagKey(
+      featureFlag,
+      new FeatureFlagException(
+        'Invalid feature flag key',
+        FeatureFlagExceptionCode.INVALID_FEATURE_FLAG_KEY,
+      ),
+    );
+
+    const featureFlagKey = FeatureFlagKey[featureFlag];
+
+    if (shouldBePublic) {
+      publicFeatureFlagValidator.assertIsPublicFeatureFlag(
+        featureFlagKey,
+        new FeatureFlagException(
+          'Invalid feature flag key, flag is not public',
+          FeatureFlagExceptionCode.INVALID_FEATURE_FLAG_KEY,
+        ),
+      );
+    }
+
+    const existingFeatureFlag = await this.featureFlagRepository.findOne({
+      where: {
+        key: featureFlagKey,
+        workspaceId: workspaceId,
+      },
+    });
+
+    const featureFlagToSave = existingFeatureFlag
+      ? {
+          ...existingFeatureFlag,
+          value,
+        }
+      : {
+          key: featureFlagKey,
+          value,
+          workspaceId: workspaceId,
+        };
+
+    return await this.featureFlagRepository.save(featureFlagToSave);
   }
 }

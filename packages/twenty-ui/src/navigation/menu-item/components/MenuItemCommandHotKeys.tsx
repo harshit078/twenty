@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from '@emotion/styled';
 
 const StyledCommandTextContainer = styled.div`
@@ -34,27 +35,24 @@ const StyledCommandKey = styled.div`
 `;
 
 export type MenuItemCommandHotKeysProps = {
-  firstHotKey?: string;
+  hotKeys?: string[];
   joinLabel?: string;
-  secondHotKey?: string;
 };
 
 export const MenuItemCommandHotKeys = ({
-  firstHotKey,
-  secondHotKey,
+  hotKeys,
   joinLabel = 'then',
 }: MenuItemCommandHotKeysProps) => {
   return (
     <StyledCommandText>
-      {firstHotKey && (
+      {hotKeys && (
         <StyledCommandTextContainer>
-          <StyledCommandKey>{firstHotKey}</StyledCommandKey>
-          {secondHotKey && (
-            <>
-              {joinLabel}
-              <StyledCommandKey>{secondHotKey}</StyledCommandKey>
-            </>
-          )}
+          {hotKeys.map((hotKey, index) => (
+            <React.Fragment key={index}>
+              <StyledCommandKey>{hotKey}</StyledCommandKey>
+              {index < hotKeys.length - 1 && joinLabel}
+            </React.Fragment>
+          ))}
         </StyledCommandTextContainer>
       )}
     </StyledCommandText>

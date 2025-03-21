@@ -14,7 +14,7 @@ const basePerson = {
   xLink: {
     primaryLinkUrl: '',
     primaryLinkLabel: '',
-    secondaryLinks: null,
+    secondaryLinks: [],
   },
   createdAt: '',
   city: '',
@@ -26,7 +26,7 @@ const basePerson = {
   linkedinLink: {
     primaryLinkUrl: '',
     primaryLinkLabel: '',
-    secondaryLinks: null,
+    secondaryLinks: [],
   },
   updatedAt: '',
   avatarUrl: '',
@@ -57,7 +57,6 @@ const connectedObjects = {
 export const variables = {
   idToUpdate: '36abbb63-34ed-4a16-89f5-f549ac55d0f9',
   input: {
-    ...basePerson,
     name: { firstName: 'John', lastName: 'Doe' },
   },
 };

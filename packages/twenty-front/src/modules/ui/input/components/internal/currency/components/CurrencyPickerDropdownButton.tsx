@@ -8,13 +8,11 @@ import { useDropdown } from '@/ui/layout/dropdown/hooks/useDropdown';
 
 import { CurrencyPickerHotkeyScope } from '../types/CurrencyPickerHotkeyScope';
 
+import { TableHotkeyScope } from '@/object-record/record-table/types/TableHotkeyScope';
+import { useClickOutsideListener } from '@/ui/utilities/pointer-event/hooks/useClickOutsideListener';
 import { CurrencyPickerDropdownSelect } from './CurrencyPickerDropdownSelect';
 
-type StyledDropdownButtonProps = {
-  isUnfolded: boolean;
-};
-
-const StyledDropdownButtonContainer = styled.div<StyledDropdownButtonProps>`
+const StyledDropdownButtonContainer = styled.div`
   align-items: center;
   color: ${({ color }) => color ?? 'none'};
   cursor: pointer;
@@ -25,7 +23,7 @@ const StyledDropdownButtonContainer = styled.div<StyledDropdownButtonProps>`
   padding-right: ${({ theme }) => theme.spacing(2)};
   user-select: none;
   &:hover {
-    filter: brightness(0.95);
+    background-color: ${({ theme }) => theme.background.transparent.light};
   }
 `;
 
@@ -62,7 +60,7 @@ export const CurrencyPickerDropdownButton = ({
 }) => {
   const theme = useTheme();
 
-  const { isDropdownOpen, closeDropdown } = useDropdown(
+  const { closeDropdown } = useDropdown(
     CurrencyPickerHotkeyScope.CurrencyPicker,
   );
 
@@ -71,17 +69,20 @@ export const CurrencyPickerDropdownButton = ({
     closeDropdown();
   };
 
+  const { toggleClickOutsideListener } = useClickOutsideListener(
+    TableHotkeyScope.CellEditMode,
+  );
+
   const currency = currencies.find(({ value }) => value === valueCode);
 
   const currencyCode = currency?.value ?? CurrencyCode.USD;
 
   return (
     <Dropdown
-      dropdownMenuWidth={200}
-      dropdownId="currncy-picker-dropdown-id"
+      dropdownId="currency-picker-dropdown-id"
       dropdownHotkeyScope={{ scope: CurrencyPickerHotkeyScope.CurrencyPicker }}
       clickableComponent={
-        <StyledDropdownButtonContainer isUnfolded={isDropdownOpen}>
+        <StyledDropdownButtonContainer>
           <StyledIconContainer>
             {currencyCode}
             <IconChevronDown size={theme.icon.size.sm} />
@@ -97,6 +98,8 @@ export const CurrencyPickerDropdownButton = ({
       }
       dropdownPlacement="bottom-start"
       dropdownOffset={{ x: 0, y: 4 }}
+      onOpen={() => toggleClickOutsideListener(false)}
+      onClose={() => toggleClickOutsideListener(true)}
     />
   );
 };

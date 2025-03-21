@@ -1,10 +1,11 @@
+// eslint-disable-next-line no-restricted-imports
 import { FunctionComponent } from 'react';
 
 export type IconComponentProps = {
   className?: string;
+  size?: number | string;
+  stroke?: number | string;
   color?: string;
-  size?: number;
-  stroke?: number;
 };
 
 export type IconComponent = FunctionComponent<IconComponentProps>;

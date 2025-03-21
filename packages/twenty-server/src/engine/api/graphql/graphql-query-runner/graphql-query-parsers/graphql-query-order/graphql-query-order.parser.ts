@@ -1,7 +1,10 @@
+import { capitalize } from 'twenty-shared';
+
 import {
+  ObjectRecordOrderBy,
   OrderByDirection,
-  RecordOrderBy,
-} from 'src/engine/api/graphql/workspace-query-builder/interfaces/record.interface';
+} from 'src/engine/api/graphql/workspace-query-builder/interfaces/object-record.interface';
+import { FeatureFlagMap } from 'src/engine/core-modules/feature-flag/interfaces/feature-flag-map.interface';
 import { FieldMetadataInterface } from 'src/engine/metadata-modules/field-metadata/interfaces/field-metadata.interface';
 
 import {
@@ -10,25 +13,29 @@ import {
 } from 'src/engine/api/graphql/graphql-query-runner/errors/graphql-query-runner.exception';
 import { compositeTypeDefinitions } from 'src/engine/metadata-modules/field-metadata/composite-types';
 import { isCompositeFieldMetadataType } from 'src/engine/metadata-modules/field-metadata/utils/is-composite-field-metadata-type.util';
-import { FieldMetadataMap } from 'src/engine/metadata-modules/utils/generate-object-metadata-map.util';
+import { FieldMetadataMap } from 'src/engine/metadata-modules/types/field-metadata-map';
 import { CompositeFieldMetadataType } from 'src/engine/metadata-modules/workspace-migration/factories/composite-column-action.factory';
-import { capitalize } from 'src/utils/capitalize';
 export class GraphqlQueryOrderFieldParser {
-  private fieldMetadataMap: FieldMetadataMap;
+  private fieldMetadataMapByName: FieldMetadataMap;
+  private featureFlagsMap: FeatureFlagMap;
 
-  constructor(fieldMetadataMap: FieldMetadataMap) {
-    this.fieldMetadataMap = fieldMetadataMap;
+  constructor(
+    fieldMetadataMapByName: FieldMetadataMap,
+    featureFlagsMap: FeatureFlagMap,
+  ) {
+    this.fieldMetadataMapByName = fieldMetadataMapByName;
+    this.featureFlagsMap = featureFlagsMap;
   }
 
   parse(
-    orderBy: RecordOrderBy,
+    orderBy: ObjectRecordOrderBy,
     objectNameSingular: string,
     isForwardPagination = true,
   ): Record<string, string> {
     return orderBy.reduce(
       (acc, item) => {
         Object.entries(item).forEach(([key, value]) => {
-          const fieldMetadata = this.fieldMetadataMap[key];
+          const fieldMetadata = this.fieldMetadataMapByName[key];
 
           if (!fieldMetadata || value === undefined) {
             throw new GraphqlQueryRunnerException(
@@ -48,7 +55,10 @@ export class GraphqlQueryOrderFieldParser {
             Object.assign(acc, compositeOrder);
           } else {
             acc[`"${objectNameSingular}"."${key}"`] =
-              this.convertOrderByToFindOptionsOrder(value, isForwardPagination);
+              this.convertOrderByToFindOptionsOrder(
+                value as OrderByDirection,
+                isForwardPagination,
+              );
           }
         });
 

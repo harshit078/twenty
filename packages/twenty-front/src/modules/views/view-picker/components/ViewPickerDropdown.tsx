@@ -10,18 +10,18 @@ import {
 import { Dropdown } from '@/ui/layout/dropdown/components/Dropdown';
 import { StyledDropdownButtonContainer } from '@/ui/layout/dropdown/components/StyledDropdownButtonContainer';
 import { useDropdown } from '@/ui/layout/dropdown/hooks/useDropdown';
-import { useRecoilComponentValueV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValueV2';
-import { useGetCurrentView } from '@/views/hooks/useGetCurrentView';
-import { entityCountInCurrentViewComponentState } from '@/views/states/entityCountInCurrentViewComponentState';
+import { useGetRecordIndexTotalCount } from '@/views/hooks/internal/useGetRecordIndexTotalCount';
+import { useGetCurrentViewOnly } from '@/views/hooks/useGetCurrentViewOnly';
 import { ViewsHotkeyScope } from '@/views/types/ViewsHotkeyScope';
 import { ViewPickerContentCreateMode } from '@/views/view-picker/components/ViewPickerContentCreateMode';
 import { ViewPickerContentEditMode } from '@/views/view-picker/components/ViewPickerContentEditMode';
 import { ViewPickerContentEffect } from '@/views/view-picker/components/ViewPickerContentEffect';
+import { ViewPickerFavoriteFoldersDropdown } from '@/views/view-picker/components/ViewPickerFavoriteFoldersDropdown';
 import { ViewPickerListContent } from '@/views/view-picker/components/ViewPickerListContent';
 import { VIEW_PICKER_DROPDOWN_ID } from '@/views/view-picker/constants/ViewPickerDropdownId';
 import { useUpdateViewFromCurrentState } from '@/views/view-picker/hooks/useUpdateViewFromCurrentState';
 import { useViewPickerMode } from '@/views/view-picker/hooks/useViewPickerMode';
-import { isDefined } from '~/utils/isDefined';
+import { isDefined } from 'twenty-shared';
 
 const StyledDropdownLabelAdornments = styled.span`
   align-items: center;
@@ -50,13 +50,11 @@ const StyledViewName = styled.span`
 export const ViewPickerDropdown = () => {
   const theme = useTheme();
 
-  const { currentViewWithCombinedFiltersAndSorts } = useGetCurrentView();
+  const { currentView } = useGetCurrentViewOnly();
 
   const { updateViewFromCurrentState } = useUpdateViewFromCurrentState();
 
-  const entityCountInCurrentView = useRecoilComponentValueV2(
-    entityCountInCurrentViewComponentState,
-  );
+  const { totalCount } = useGetRecordIndexTotalCount();
 
   const { isDropdownOpen: isViewsListDropdownOpen } = useDropdown(
     VIEW_PICKER_DROPDOWN_ID,
@@ -65,7 +63,7 @@ export const ViewPickerDropdown = () => {
   const { viewPickerMode, setViewPickerMode } = useViewPickerMode();
 
   const { getIcon } = useIcons();
-  const CurrentViewIcon = getIcon(currentViewWithCombinedFiltersAndSorts?.icon);
+  const CurrentViewIcon = getIcon(currentView?.icon);
 
   const handleClickOutside = async () => {
     if (isViewsListDropdownOpen && viewPickerMode === 'edit') {
@@ -79,41 +77,48 @@ export const ViewPickerDropdown = () => {
       dropdownId={VIEW_PICKER_DROPDOWN_ID}
       dropdownHotkeyScope={{ scope: ViewsHotkeyScope.ListDropdown }}
       dropdownOffset={{ x: 0, y: 8 }}
+      dropdownPlacement="bottom-start"
       dropdownMenuWidth={200}
       onClickOutside={handleClickOutside}
       clickableComponent={
         <StyledDropdownButtonContainer isUnfolded={isViewsListDropdownOpen}>
-          {currentViewWithCombinedFiltersAndSorts && CurrentViewIcon ? (
+          {currentView && CurrentViewIcon ? (
             <CurrentViewIcon size={theme.icon.size.md} />
           ) : (
             <IconList size={theme.icon.size.md} />
           )}
-          <StyledViewName>
-            {currentViewWithCombinedFiltersAndSorts?.name ?? 'All'}
-          </StyledViewName>
+          <StyledViewName>{currentView?.name ?? 'All'}</StyledViewName>
           <StyledDropdownLabelAdornments>
-            {isDefined(entityCountInCurrentView) && (
-              <>· {entityCountInCurrentView} </>
-            )}
+            {isDefined(totalCount) && <>· {totalCount} </>}
             <IconChevronDown size={theme.icon.size.sm} />
           </StyledDropdownLabelAdornments>
         </StyledDropdownButtonContainer>
       }
-      dropdownComponents={
-        viewPickerMode === 'list' ? (
-          <ViewPickerListContent />
-        ) : (
-          <>
-            {viewPickerMode === 'create-empty' ||
-            viewPickerMode === 'create-from-current' ? (
-              <ViewPickerContentCreateMode />
-            ) : (
-              <ViewPickerContentEditMode />
-            )}
-            <ViewPickerContentEffect />
-          </>
-        )
-      }
+      dropdownComponents={(() => {
+        switch (viewPickerMode) {
+          case 'list':
+            return <ViewPickerListContent />;
+          case 'favorite-folders-picker':
+            return <ViewPickerFavoriteFoldersDropdown />;
+          case 'create-empty':
+          case 'create-from-current':
+            return (
+              <>
+                <ViewPickerContentCreateMode />
+                <ViewPickerContentEffect />
+              </>
+            );
+          case 'edit':
+            return (
+              <>
+                <ViewPickerContentEditMode />
+                <ViewPickerContentEffect />
+              </>
+            );
+          default:
+            return null;
+        }
+      })()}
     />
   );
 };

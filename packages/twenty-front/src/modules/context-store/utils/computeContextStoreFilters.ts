@@ -1,22 +1,27 @@
 import { ContextStoreTargetedRecordsRule } from '@/context-store/states/contextStoreTargetedRecordsRuleComponentState';
 import { ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { RecordGqlOperationFilter } from '@/object-record/graphql/types/RecordGqlOperationFilter';
-import { computeViewRecordGqlOperationFilter } from '@/object-record/record-filter/utils/computeViewRecordGqlOperationFilter';
+import { RecordFilter } from '@/object-record/record-filter/types/RecordFilter';
+import { RecordFilterValueDependencies } from '@/object-record/record-filter/types/RecordFilterValueDependencies';
+import { computeRecordGqlOperationFilter } from '@/object-record/record-filter/utils/computeViewRecordGqlOperationFilter';
 import { makeAndFilterVariables } from '@/object-record/utils/makeAndFilterVariables';
 
 export const computeContextStoreFilters = (
   contextStoreTargetedRecordsRule: ContextStoreTargetedRecordsRule,
+  contextStoreFilters: RecordFilter[],
   objectMetadataItem: ObjectMetadataItem,
+  filterValueDependencies: RecordFilterValueDependencies,
 ) => {
   let queryFilter: RecordGqlOperationFilter | undefined;
 
   if (contextStoreTargetedRecordsRule.mode === 'exclusion') {
     queryFilter = makeAndFilterVariables([
-      computeViewRecordGqlOperationFilter(
-        contextStoreTargetedRecordsRule.filters,
-        objectMetadataItem?.fields ?? [],
-        [],
-      ),
+      computeRecordGqlOperationFilter({
+        filterValueDependencies,
+        fields: objectMetadataItem?.fields ?? [],
+        recordFilters: contextStoreFilters,
+        recordFilterGroups: [],
+      }),
       contextStoreTargetedRecordsRule.excludedRecordIds.length > 0
         ? {
             not: {
@@ -36,7 +41,12 @@ export const computeContextStoreFilters = (
               in: contextStoreTargetedRecordsRule.selectedRecordIds,
             },
           }
-        : undefined;
+        : computeRecordGqlOperationFilter({
+            filterValueDependencies,
+            fields: objectMetadataItem?.fields ?? [],
+            recordFilters: contextStoreFilters,
+            recordFilterGroups: [],
+          });
   }
 
   return queryFilter;

@@ -1,6 +1,12 @@
+import { isGoogleCalendarEnabledState } from '@/client-config/states/isGoogleCalendarEnabledState';
+import { isGoogleMessagingEnabledState } from '@/client-config/states/isGoogleMessagingEnabledState';
+import { isMicrosoftCalendarEnabledState } from '@/client-config/states/isMicrosoftCalendarEnabledState';
+import { isMicrosoftMessagingEnabledState } from '@/client-config/states/isMicrosoftMessagingEnabledState';
 import { useTriggerApisOAuth } from '@/settings/accounts/hooks/useTriggerApiOAuth';
-import { useIsFeatureEnabled } from '@/workspace/hooks/useIsFeatureEnabled';
 import styled from '@emotion/styled';
+import { useLingui } from '@lingui/react/macro';
+import { useRecoilValue } from 'recoil';
+import { ConnectedAccountProvider } from 'twenty-shared';
 import {
   Button,
   Card,
@@ -30,26 +36,41 @@ export const SettingsAccountsListEmptyStateCard = ({
   label,
 }: SettingsAccountsListEmptyStateCardProps) => {
   const { triggerApisOAuth } = useTriggerApisOAuth();
-  const isMicrosoftSyncEnabled = useIsFeatureEnabled(
-    'IS_MICROSOFT_SYNC_ENABLED',
+
+  const { t } = useLingui();
+
+  const isGoogleMessagingEnabled = useRecoilValue(
+    isGoogleMessagingEnabledState,
+  );
+  const isMicrosoftMessagingEnabled = useRecoilValue(
+    isMicrosoftMessagingEnabledState,
+  );
+
+  const isGoogleCalendarEnabled = useRecoilValue(isGoogleCalendarEnabledState);
+
+  const isMicrosoftCalendarEnabled = useRecoilValue(
+    isMicrosoftCalendarEnabledState,
   );
 
   return (
     <Card>
-      <StyledHeader>{label || 'No connected account'}</StyledHeader>
+      <StyledHeader>{label || t`No connected account`}</StyledHeader>
       <StyledBody>
-        <Button
-          Icon={IconGoogle}
-          title="Connect with Google"
-          variant="secondary"
-          onClick={() => triggerApisOAuth('google')}
-        />
-        {isMicrosoftSyncEnabled && (
+        {(isGoogleMessagingEnabled || isGoogleCalendarEnabled) && (
+          <Button
+            Icon={IconGoogle}
+            title={t`Connect with Google`}
+            variant="secondary"
+            onClick={() => triggerApisOAuth(ConnectedAccountProvider.GOOGLE)}
+          />
+        )}
+
+        {(isMicrosoftMessagingEnabled || isMicrosoftCalendarEnabled) && (
           <Button
             Icon={IconMicrosoft}
-            title="Connect with Microsoft"
+            title={t`Connect with Microsoft`}
             variant="secondary"
-            onClick={() => triggerApisOAuth('microsoft')}
+            onClick={() => triggerApisOAuth(ConnectedAccountProvider.MICROSOFT)}
           />
         )}
       </StyledBody>

@@ -2,15 +2,38 @@ import { ComponentFamilyStateKeyV2 } from '@/ui/utilities/state/component-state/
 import { ComponentFamilyStateV2 } from '@/ui/utilities/state/component-state/types/ComponentFamilyStateV2';
 import { ComponentInstanceStateContext } from '@/ui/utilities/state/component-state/types/ComponentInstanceStateContext';
 import { globalComponentInstanceContextMap } from '@/ui/utilities/state/component-state/utils/globalComponentInstanceContextMap';
-import { AtomEffect, atomFamily, SerializableParam } from 'recoil';
+import {
+  AtomEffect,
+  atomFamily,
+  Loadable,
+  RecoilValue,
+  SerializableParam,
+  WrappedValue,
+} from 'recoil';
 
-import { isDefined } from 'twenty-ui';
+import { isDefined } from 'twenty-shared';
 
-type CreateComponentFamilyStateArgs<ValueType> = {
+type CreateComponentFamilyStateArgs<
+  ValueType,
+  FamilyKey extends SerializableParam,
+> = {
   key: string;
-  defaultValue: ValueType;
+  defaultValue:
+    | ValueType
+    | ((
+        param: ComponentFamilyStateKeyV2<FamilyKey>,
+      ) =>
+        | ValueType
+        | RecoilValue<ValueType>
+        | Promise<ValueType>
+        | Loadable<ValueType>
+        | WrappedValue<ValueType>);
   componentInstanceContext: ComponentInstanceStateContext<any> | null;
-  effects?: AtomEffect<ValueType>[];
+  effects?:
+    | AtomEffect<ValueType>[]
+    | ((
+        param: ComponentFamilyStateKeyV2<FamilyKey>,
+      ) => ReadonlyArray<AtomEffect<ValueType>>);
 };
 
 export const createComponentFamilyStateV2 = <
@@ -21,10 +44,10 @@ export const createComponentFamilyStateV2 = <
   effects,
   defaultValue,
   componentInstanceContext,
-}: CreateComponentFamilyStateArgs<ValueType>): ComponentFamilyStateV2<
+}: CreateComponentFamilyStateArgs<
   ValueType,
   FamilyKey
-> => {
+>): ComponentFamilyStateV2<ValueType, FamilyKey> => {
   if (isDefined(componentInstanceContext)) {
     globalComponentInstanceContextMap.set(key, componentInstanceContext);
   }

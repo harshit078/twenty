@@ -1,33 +1,41 @@
 import styled from '@emotion/styled';
 import { ReactNode, useMemo } from 'react';
 
+import { useObjectNameSingularFromPlural } from '@/object-metadata/hooks/useObjectNameSingularFromPlural';
 import { AddObjectFilterFromDetailsButton } from '@/object-record/object-filter-dropdown/components/AddObjectFilterFromDetailsButton';
-import { ObjectFilterDropdownScope } from '@/object-record/object-filter-dropdown/scopes/ObjectFilterDropdownScope';
-import { Filter } from '@/object-record/object-filter-dropdown/types/Filter';
+import { ObjectFilterDropdownComponentInstanceContext } from '@/object-record/object-filter-dropdown/states/contexts/ObjectFilterDropdownComponentInstanceContext';
+import { useHandleToggleTrashColumnFilter } from '@/object-record/record-index/hooks/useHandleToggleTrashColumnFilter';
 import { DropdownScope } from '@/ui/layout/dropdown/scopes/DropdownScope';
-import { useRecoilComponentFamilyValueV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentFamilyValueV2';
 import { useRecoilComponentValueV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValueV2';
 import { AdvancedFilterDropdownButton } from '@/views/components/AdvancedFilterDropdownButton';
 import { EditableFilterDropdownButton } from '@/views/components/EditableFilterDropdownButton';
 import { EditableSortChip } from '@/views/components/EditableSortChip';
 import { ViewBarFilterEffect } from '@/views/components/ViewBarFilterEffect';
 import { useViewFromQueryParams } from '@/views/hooks/internal/useViewFromQueryParams';
-import { useGetCurrentView } from '@/views/hooks/useGetCurrentView';
-import { useResetUnsavedViewStates } from '@/views/hooks/useResetUnsavedViewStates';
-import { availableFilterDefinitionsComponentState } from '@/views/states/availableFilterDefinitionsComponentState';
-import { availableSortDefinitionsComponentState } from '@/views/states/availableSortDefinitionsComponentState';
+
+import { useCheckIsSoftDeleteFilter } from '@/object-record/record-filter/hooks/useCheckIsSoftDeleteFilter';
+import { currentRecordFiltersComponentState } from '@/object-record/record-filter/states/currentRecordFiltersComponentState';
+import { currentRecordSortsComponentState } from '@/object-record/record-sort/states/currentRecordSortsComponentState';
+import { SoftDeleteFilterChip } from '@/views/components/SoftDeleteFilterChip';
+import { useApplyCurrentViewFiltersToCurrentRecordFilters } from '@/views/hooks/useApplyCurrentViewFiltersToCurrentRecordFilters';
+import { useApplyCurrentViewSortsToCurrentRecordSorts } from '@/views/hooks/useApplyCurrentViewSortsToCurrentRecordSorts';
+import { useAreViewFiltersDifferentFromRecordFilters } from '@/views/hooks/useAreViewFiltersDifferentFromRecordFilters';
+import { useAreViewSortsDifferentFromRecordSorts } from '@/views/hooks/useAreViewSortsDifferentFromRecordSorts';
+
+import { currentRecordFilterGroupsComponentState } from '@/object-record/record-filter-group/states/currentRecordFilterGroupsComponentState';
+import { useApplyCurrentViewFilterGroupsToCurrentRecordFilterGroups } from '@/views/hooks/useApplyCurrentViewFilterGroupsToCurrentRecordFilterGroups';
+import { useAreViewFilterGroupsDifferentFromRecordFilterGroups } from '@/views/hooks/useAreViewFilterGroupsDifferentFromRecordFilterGroups';
 import { isViewBarExpandedComponentState } from '@/views/states/isViewBarExpandedComponentState';
-import { canPersistViewComponentFamilySelector } from '@/views/states/selectors/canPersistViewComponentFamilySelector';
-import { mapViewFiltersToFilters } from '@/views/utils/mapViewFiltersToFilters';
-import { mapViewSortsToSorts } from '@/views/utils/mapViewSortsToSorts';
-import { isDefined } from 'twenty-ui';
-import { VariantFilterChip } from './VariantFilterChip';
+import { t } from '@lingui/core/macro';
+import { isNonEmptyArray } from '@sniptt/guards';
+import { isDefined } from 'twenty-shared';
 
 export type ViewBarDetailsProps = {
   hasFilterButton?: boolean;
   rightComponent?: ReactNode;
   filterDropdownId?: string;
   viewBarId: string;
+  objectNamePlural: string;
 };
 
 const StyledBar = styled.div`
@@ -41,6 +49,7 @@ const StyledBar = styled.div`
   min-height: 32px;
   padding-top: ${({ theme }) => theme.spacing(1)};
   padding-bottom: ${({ theme }) => theme.spacing(1)};
+  padding-left: ${({ theme }) => theme.spacing(2)};
   z-index: 4;
 `;
 
@@ -49,7 +58,7 @@ const StyledChipcontainer = styled.div`
   display: flex;
   flex-direction: row;
   overflow: scroll;
-  gap: ${({ theme }) => theme.spacing(1)};
+  gap: ${({ theme }) => theme.spacing(2)};
   padding-top: ${({ theme }) => theme.spacing(1)};
   z-index: 1;
 `;
@@ -73,6 +82,8 @@ const StyledFilterContainer = styled.div`
   align-items: center;
   flex: 1;
   overflow-x: hidden;
+
+  gap: ${({ theme }) => theme.spacing(1)};
 `;
 
 const StyledSeperatorContainer = styled.div`
@@ -92,7 +103,6 @@ const StyledSeperator = styled.div`
 `;
 
 const StyledAddFilterContainer = styled.div`
-  margin-left: ${({ theme }) => theme.spacing(1)};
   z-index: 5;
 `;
 
@@ -101,134 +111,142 @@ export const ViewBarDetails = ({
   rightComponent,
   filterDropdownId,
   viewBarId,
+  objectNamePlural,
 }: ViewBarDetailsProps) => {
-  const { currentViewWithCombinedFiltersAndSorts } = useGetCurrentView();
-
-  const viewId = currentViewWithCombinedFiltersAndSorts?.id;
-
   const isViewBarExpanded = useRecoilComponentValueV2(
     isViewBarExpandedComponentState,
   );
 
   const { hasFiltersQueryParams } = useViewFromQueryParams();
 
-  const canPersistView = useRecoilComponentFamilyValueV2(
-    canPersistViewComponentFamilySelector,
-    { viewId },
+  const currentRecordFilterGroups = useRecoilComponentValueV2(
+    currentRecordFilterGroupsComponentState,
   );
 
-  const availableFilterDefinitions = useRecoilComponentValueV2(
-    availableFilterDefinitionsComponentState,
+  const currentRecordFilters = useRecoilComponentValueV2(
+    currentRecordFiltersComponentState,
   );
 
-  const availableSortDefinitions = useRecoilComponentValueV2(
-    availableSortDefinitionsComponentState,
+  const currentRecordSorts = useRecoilComponentValueV2(
+    currentRecordSortsComponentState,
   );
 
-  const { resetUnsavedViewStates } = useResetUnsavedViewStates();
-  const canResetView = canPersistView && !hasFiltersQueryParams;
+  const { objectNameSingular } = useObjectNameSingularFromPlural({
+    objectNamePlural: objectNamePlural,
+  });
+  const { toggleSoftDeleteFilterState } = useHandleToggleTrashColumnFilter({
+    objectNameSingular: objectNameSingular,
+    viewBarId: viewBarId,
+  });
 
-  const { otherViewFilters, defaultViewFilters } = useMemo(() => {
-    if (!currentViewWithCombinedFiltersAndSorts) {
-      return {
-        otherViewFilters: [],
-        defaultViewFilters: [],
-      };
-    }
+  const { viewFilterGroupsAreDifferentFromRecordFilterGroups } =
+    useAreViewFilterGroupsDifferentFromRecordFilterGroups();
 
-    const otherViewFilters =
-      currentViewWithCombinedFiltersAndSorts.viewFilters.filter(
-        (viewFilter) =>
-          viewFilter.variant &&
-          viewFilter.variant !== 'default' &&
-          !viewFilter.viewFilterGroupId,
-      );
-    const defaultViewFilters =
-      currentViewWithCombinedFiltersAndSorts.viewFilters.filter(
-        (viewFilter) =>
-          (!viewFilter.variant || viewFilter.variant === 'default') &&
-          !viewFilter.viewFilterGroupId,
-      );
+  const { viewFiltersAreDifferentFromRecordFilters } =
+    useAreViewFiltersDifferentFromRecordFilters();
 
-    return {
-      otherViewFilters,
-      defaultViewFilters,
-    };
-  }, [currentViewWithCombinedFiltersAndSorts]);
+  const { viewSortsAreDifferentFromRecordSorts } =
+    useAreViewSortsDifferentFromRecordSorts();
+
+  const canResetView =
+    (viewFiltersAreDifferentFromRecordFilters ||
+      viewSortsAreDifferentFromRecordSorts ||
+      viewFilterGroupsAreDifferentFromRecordFilterGroups) &&
+    !hasFiltersQueryParams;
+
+  const { checkIsSoftDeleteFilter } = useCheckIsSoftDeleteFilter();
+
+  const softDeleteFilter = currentRecordFilters.find((recordFilter) =>
+    checkIsSoftDeleteFilter(recordFilter),
+  );
+
+  const recordFilters = useMemo(() => {
+    return currentRecordFilters.filter(
+      (recordFilter) =>
+        !recordFilter.recordFilterGroupId &&
+        !checkIsSoftDeleteFilter(recordFilter),
+    );
+  }, [currentRecordFilters, checkIsSoftDeleteFilter]);
+
+  const { applyCurrentViewFilterGroupsToCurrentRecordFilterGroups } =
+    useApplyCurrentViewFilterGroupsToCurrentRecordFilterGroups();
+
+  const { applyCurrentViewFiltersToCurrentRecordFilters } =
+    useApplyCurrentViewFiltersToCurrentRecordFilters();
+
+  const { applyCurrentViewSortsToCurrentRecordSorts } =
+    useApplyCurrentViewSortsToCurrentRecordSorts();
 
   const handleCancelClick = () => {
-    if (isDefined(viewId)) {
-      resetUnsavedViewStates(viewId);
-    }
+    applyCurrentViewFilterGroupsToCurrentRecordFilterGroups();
+    applyCurrentViewFiltersToCurrentRecordFilters();
+    applyCurrentViewSortsToCurrentRecordSorts();
+    toggleSoftDeleteFilterState(false);
   };
 
   const shouldExpandViewBar =
-    canPersistView ||
-    ((currentViewWithCombinedFiltersAndSorts?.viewSorts?.length ||
-      currentViewWithCombinedFiltersAndSorts?.viewFilters?.length) &&
+    viewFiltersAreDifferentFromRecordFilters ||
+    viewSortsAreDifferentFromRecordSorts ||
+    viewFilterGroupsAreDifferentFromRecordFilterGroups ||
+    ((currentRecordSorts.length > 0 ||
+      currentRecordFilters.length > 0 ||
+      currentRecordFilterGroups.length > 0) &&
       isViewBarExpanded);
 
   if (!shouldExpandViewBar) {
     return null;
   }
 
-  const showAdvancedFilterDropdownButton =
-    currentViewWithCombinedFiltersAndSorts?.viewFilterGroups &&
-    currentViewWithCombinedFiltersAndSorts?.viewFilterGroups.length > 0;
+  const shouldShowAdvancedFilterDropdownButton =
+    currentRecordFilterGroups.length > 0;
 
   return (
     <StyledBar>
       <StyledFilterContainer>
         <StyledChipcontainer>
-          {otherViewFilters.map((viewFilter) => (
-            <VariantFilterChip
-              key={viewFilter.fieldMetadataId}
-              // Why do we have two types, Filter and ViewFilter?
-              // Why key defition is already present in the Filter type and added on the fly here with mapViewFiltersToFilters ?
-              // Also as filter is spread into viewFilter, definition is present
-              // FixMe: Ugly hack to make it work
-              viewFilter={viewFilter as unknown as Filter}
+          {isDefined(softDeleteFilter) && (
+            <SoftDeleteFilterChip
+              key={softDeleteFilter.fieldMetadataId}
+              recordFilter={softDeleteFilter}
               viewBarId={viewBarId}
             />
+          )}
+          {isDefined(softDeleteFilter) && (
+            <StyledSeperatorContainer>
+              <StyledSeperator />
+            </StyledSeperatorContainer>
+          )}
+          {currentRecordSorts.map((recordSort) => (
+            <EditableSortChip
+              key={recordSort.fieldMetadataId}
+              recordSort={recordSort}
+            />
           ))}
-          {!!otherViewFilters.length &&
-            !!currentViewWithCombinedFiltersAndSorts?.viewSorts?.length && (
+          {isNonEmptyArray(recordFilters) &&
+            isNonEmptyArray(currentRecordSorts) && (
               <StyledSeperatorContainer>
                 <StyledSeperator />
               </StyledSeperatorContainer>
             )}
-          {mapViewSortsToSorts(
-            currentViewWithCombinedFiltersAndSorts?.viewSorts ?? [],
-            availableSortDefinitions,
-          ).map((sort) => (
-            <EditableSortChip key={sort.fieldMetadataId} viewSort={sort} />
-          ))}
-          {!!currentViewWithCombinedFiltersAndSorts?.viewSorts?.length &&
-            !!defaultViewFilters.length && (
-              <StyledSeperatorContainer>
-                <StyledSeperator />
-              </StyledSeperatorContainer>
-            )}
-          {showAdvancedFilterDropdownButton && <AdvancedFilterDropdownButton />}
-          {mapViewFiltersToFilters(
-            defaultViewFilters,
-            availableFilterDefinitions,
-          ).map((viewFilter) => (
-            <ObjectFilterDropdownScope
-              key={viewFilter.id}
-              filterScopeId={viewFilter.id}
+          {shouldShowAdvancedFilterDropdownButton && (
+            <AdvancedFilterDropdownButton />
+          )}
+          {recordFilters.map((recordFilter) => (
+            <ObjectFilterDropdownComponentInstanceContext.Provider
+              key={recordFilter.id}
+              value={{ instanceId: recordFilter.id }}
             >
-              <DropdownScope dropdownScopeId={viewFilter.id}>
-                <ViewBarFilterEffect filterDropdownId={viewFilter.id} />
+              <DropdownScope dropdownScopeId={recordFilter.id}>
+                <ViewBarFilterEffect filterDropdownId={recordFilter.id} />
                 <EditableFilterDropdownButton
-                  viewFilter={viewFilter}
+                  viewFilter={recordFilter}
                   hotkeyScope={{
-                    scope: viewFilter.id,
+                    scope: recordFilter.id,
                   }}
-                  viewFilterDropdownId={viewFilter.id}
+                  viewFilterDropdownId={recordFilter.id}
                 />
               </DropdownScope>
-            </ObjectFilterDropdownScope>
+            </ObjectFilterDropdownComponentInstanceContext.Provider>
           ))}
         </StyledChipcontainer>
         {hasFilterButton && (
@@ -244,7 +262,7 @@ export const ViewBarDetails = ({
           data-testid="cancel-button"
           onClick={handleCancelClick}
         >
-          Reset
+          {t`Reset`}
         </StyledCancelButton>
       )}
       {rightComponent}

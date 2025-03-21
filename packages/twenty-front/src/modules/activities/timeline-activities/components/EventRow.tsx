@@ -11,6 +11,9 @@ import { TimelineActivity } from '@/activities/timeline-activities/types/Timelin
 import { getTimelineActivityAuthorFullName } from '@/activities/timeline-activities/utils/getTimelineActivityAuthorFullName';
 import { currentWorkspaceMemberState } from '@/auth/states/currentWorkspaceMemberState';
 import { ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
+import { getObjectRecordIdentifier } from '@/object-metadata/utils/getObjectRecordIdentifier';
+import { recordStoreFamilyState } from '@/object-record/record-store/states/recordStoreFamilyState';
+import { MOBILE_VIEWPORT } from 'twenty-ui';
 import { beautifyPastDateRelativeToNow } from '~/utils/date-utils';
 import { isUndefinedOrNull } from '~/utils/isUndefinedOrNull';
 
@@ -62,6 +65,7 @@ const StyledSummary = styled.summary`
   flex: 1;
   flex-direction: row;
   gap: ${({ theme }) => theme.spacing(1)};
+  width: 100%;
 `;
 
 const StyledItemContainer = styled.div<{ isMarginBottom?: boolean }>`
@@ -77,6 +81,9 @@ const StyledItemContainer = styled.div<{ isMarginBottom?: boolean }>`
 `;
 
 const StyledItemTitleDate = styled.div`
+  @media (max-width: ${MOBILE_VIEWPORT}px) {
+    display: none;
+  }
   align-items: flex-start;
   padding-top: ${({ theme }) => theme.spacing(1)};
   color: ${({ theme }) => theme.font.color.tertiary};
@@ -99,7 +106,10 @@ export const EventRow = ({
 }: EventRowProps) => {
   const currentWorkspaceMember = useRecoilValue(currentWorkspaceMemberState);
 
-  const { labelIdentifierValue } = useContext(TimelineActivityContext);
+  const { recordId } = useContext(TimelineActivityContext);
+
+  const recordFromStore = useRecoilValue(recordStoreFamilyState(recordId));
+
   const beautifiedCreatedAt = beautifyPastDateRelativeToNow(event.createdAt);
   const linkedObjectMetadataItem = useLinkedObjectObjectMetadataItem(
     event.linkedObjectMetadataId,
@@ -108,6 +118,18 @@ export const EventRow = ({
   if (isUndefinedOrNull(currentWorkspaceMember)) {
     return null;
   }
+
+  if (isUndefinedOrNull(recordFromStore)) {
+    return null;
+  }
+  if (isUndefinedOrNull(mainObjectMetadataItem)) {
+    return null;
+  }
+
+  const labelIdentifier = getObjectRecordIdentifier({
+    objectMetadataItem: mainObjectMetadataItem,
+    record: recordFromStore,
+  });
 
   const authorFullName = getTimelineActivityAuthorFullName(
     event,
@@ -138,7 +160,7 @@ export const EventRow = ({
           <StyledSummary>
             <EventRowDynamicComponent
               authorFullName={authorFullName}
-              labelIdentifierValue={labelIdentifierValue}
+              labelIdentifierValue={labelIdentifier.name}
               event={event}
               mainObjectMetadataItem={mainObjectMetadataItem}
               linkedObjectMetadataItem={linkedObjectMetadataItem}

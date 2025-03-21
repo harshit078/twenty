@@ -1,6 +1,6 @@
 import { Theme, withTheme } from '@emotion/react';
 import { styled } from '@linaria/react';
-import { MouseEvent, ReactNode } from 'react';
+import { ReactNode } from 'react';
 
 import { OverflowingTextWithTooltip } from '@ui/display/tooltip/OverflowingTextWithTooltip';
 
@@ -21,7 +21,7 @@ export enum ChipVariant {
   Rounded = 'rounded',
 }
 
-type ChipProps = {
+export type ChipProps = {
   size?: ChipSize;
   disabled?: boolean;
   clickable?: boolean;
@@ -29,10 +29,9 @@ type ChipProps = {
   maxWidth?: number;
   variant?: ChipVariant;
   accent?: ChipAccent;
-  leftComponent?: ReactNode;
-  rightComponent?: ReactNode;
+  leftComponent?: (() => ReactNode) | null;
+  rightComponent?: (() => ReactNode) | null;
   className?: string;
-  onClick?: (event: MouseEvent<HTMLDivElement>) => void;
 };
 
 const StyledContainer = withTheme(styled.div<
@@ -64,7 +63,7 @@ const StyledContainer = withTheme(styled.div<
           : 'inherit'};
 
   display: inline-flex;
-  justify-content: center;
+  justify-content: flex-start;
   gap: ${({ theme }) => theme.spacing(1)};
   height: ${({ theme, size }) =>
     size === ChipSize.Large ? theme.spacing(4) : theme.spacing(3)};
@@ -72,7 +71,6 @@ const StyledContainer = withTheme(styled.div<
     maxWidth
       ? `calc(${maxWidth}px - 2 * var(--chip-horizontal-padding))`
       : '200px'};
-
   overflow: hidden;
   padding: var(--chip-vertical-padding) var(--chip-horizontal-padding);
   user-select: none;
@@ -116,6 +114,11 @@ const StyledContainer = withTheme(styled.div<
   & > svg {
     flex-shrink: 0;
   }
+
+  padding-left: ${({ theme, variant }) =>
+    variant === ChipVariant.Transparent
+      ? theme.spacing(0)
+      : 'var(--chip-horizontal-padding)'};
 `);
 
 export const Chip = ({
@@ -124,11 +127,11 @@ export const Chip = ({
   disabled = false,
   clickable = true,
   variant = ChipVariant.Regular,
-  leftComponent,
-  rightComponent,
+  leftComponent = null,
+  rightComponent = null,
   accent = ChipAccent.TextPrimary,
-  onClick,
   className,
+  maxWidth,
 }: ChipProps) => {
   return (
     <StyledContainer
@@ -138,12 +141,12 @@ export const Chip = ({
       disabled={disabled}
       size={size}
       variant={variant}
-      onClick={onClick}
       className={className}
+      maxWidth={maxWidth}
     >
-      {leftComponent}
+      {leftComponent?.()}
       <OverflowingTextWithTooltip size={size} text={label} />
-      {rightComponent}
+      {rightComponent?.()}
     </StyledContainer>
   );
 };

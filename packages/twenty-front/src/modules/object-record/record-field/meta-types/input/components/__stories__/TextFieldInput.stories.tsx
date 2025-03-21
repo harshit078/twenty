@@ -6,6 +6,8 @@ import { useSetHotkeyScope } from '@/ui/utilities/hotkey/hooks/useSetHotkeyScope
 import { FieldMetadataType } from '~/generated/graphql';
 import { SnackBarDecorator } from '~/testing/decorators/SnackBarDecorator';
 
+import { StorybookFieldInputDropdownFocusIdSetterEffect } from '~/testing/components/StorybookFieldInputDropdownFocusIdSetterEffect';
+import { I18nFrontDecorator } from '~/testing/decorators/I18nFrontDecorator';
 import { FieldContextProvider } from '../../../components/FieldContextProvider';
 import { useTextField } from '../../../hooks/useTextField';
 import { TextFieldInput, TextFieldInputProps } from '../TextFieldInput';
@@ -46,7 +48,7 @@ const TextFieldInputWithContext = ({
         fieldDefinition={{
           fieldMetadataId: 'text',
           label: 'Text',
-          type: FieldMetadataType.Text,
+          type: FieldMetadataType.TEXT,
           iconName: 'IconTag',
           metadata: {
             fieldName: 'Text',
@@ -56,6 +58,7 @@ const TextFieldInputWithContext = ({
         }}
         recordId={recordId}
       >
+        <StorybookFieldInputDropdownFocusIdSetterEffect />
         <TextFieldValueSetterEffect value={value} />
         <TextFieldInput
           onEnter={onEnter}
@@ -105,7 +108,7 @@ const meta: Meta = {
     onTab: { control: false },
     onShiftTab: { control: false },
   },
-  decorators: [clearMocksDecorator, SnackBarDecorator],
+  decorators: [clearMocksDecorator, SnackBarDecorator, I18nFrontDecorator],
   parameters: {
     clearMocks: true,
   },

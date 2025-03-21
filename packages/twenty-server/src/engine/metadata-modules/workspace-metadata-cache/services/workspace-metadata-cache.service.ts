@@ -4,9 +4,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
-import { LogExecutionTime } from 'src/engine/decorators/observability/log-execution-time.decorator';
 import { ObjectMetadataEntity } from 'src/engine/metadata-modules/object-metadata/object-metadata.entity';
-import { generateObjectMetadataMap } from 'src/engine/metadata-modules/utils/generate-object-metadata-map.util';
+import { generateObjectMetadataMaps } from 'src/engine/metadata-modules/utils/generate-object-metadata-maps.util';
 import {
   WorkspaceMetadataCacheException,
   WorkspaceMetadataCacheExceptionCode,
@@ -25,7 +24,6 @@ export class WorkspaceMetadataCacheService {
     private readonly objectMetadataRepository: Repository<ObjectMetadataEntity>,
   ) {}
 
-  @LogExecutionTime()
   async recomputeMetadataCache({
     workspaceId,
     ignoreLock = false,
@@ -70,7 +68,6 @@ export class WorkspaceMetadataCacheService {
       currentDatabaseVersion,
     );
 
-    console.time('fetching object metadata');
     const objectMetadataItems = await this.objectMetadataRepository.find({
       where: { workspaceId },
       relations: [
@@ -82,18 +79,13 @@ export class WorkspaceMetadataCacheService {
       ],
     });
 
-    console.timeEnd('fetching object metadata');
+    const freshObjectMetadataMaps =
+      generateObjectMetadataMaps(objectMetadataItems);
 
-    console.time('generating object metadata map');
-    const freshObjectMetadataMap =
-      generateObjectMetadataMap(objectMetadataItems);
-
-    console.timeEnd('generating object metadata map');
-
-    await this.workspaceCacheStorageService.setObjectMetadataMap(
+    await this.workspaceCacheStorageService.setObjectMetadataMaps(
       workspaceId,
       currentDatabaseVersion,
-      freshObjectMetadataMap,
+      freshObjectMetadataMaps,
     );
 
     await this.workspaceCacheStorageService.removeObjectMetadataOngoingCachingLock(

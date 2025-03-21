@@ -1,9 +1,9 @@
-import { ObjectRecordBaseEvent } from 'src/engine/core-modules/event-emitter/types/object-record.base.event';
+import { ObjectRecordEvent } from 'src/engine/core-modules/event-emitter/types/object-record-event.event';
 import { Process } from 'src/engine/core-modules/message-queue/decorators/process.decorator';
 import { Processor } from 'src/engine/core-modules/message-queue/decorators/processor.decorator';
 import { MessageQueue } from 'src/engine/core-modules/message-queue/message-queue.constants';
 import { InjectObjectMetadataRepository } from 'src/engine/object-metadata-repository/object-metadata-repository.decorator';
-import { WorkspaceEventBatch } from 'src/engine/workspace-event-emitter/workspace-event.type';
+import { WorkspaceEventBatch } from 'src/engine/workspace-event-emitter/types/workspace-event.type';
 import { AuditLogRepository } from 'src/modules/timeline/repositiories/audit-log.repository';
 import { AuditLogWorkspaceEntity } from 'src/modules/timeline/standard-objects/audit-log.workspace-entity';
 import { WorkspaceMemberRepository } from 'src/modules/workspace-member/repositories/workspace-member.repository';
@@ -20,7 +20,7 @@ export class CreateAuditLogFromInternalEvent {
 
   @Process(CreateAuditLogFromInternalEvent.name)
   async handle(
-    workspaceEventBatch: WorkspaceEventBatch<ObjectRecordBaseEvent>,
+    workspaceEventBatch: WorkspaceEventBatch<ObjectRecordEvent>,
   ): Promise<void> {
     for (const eventData of workspaceEventBatch.events) {
       let workspaceMemberId: string | null = null;
@@ -34,16 +34,14 @@ export class CreateAuditLogFromInternalEvent {
         workspaceMemberId = workspaceMember.id;
       }
 
-      if (eventData.properties.diff) {
-        // we remove "before" and "after" property for a cleaner/slimmer event payload
-        eventData.properties = {
-          diff: eventData.properties.diff,
-        };
-      }
-
       await this.auditLogRepository.insert(
         workspaceEventBatch.name,
-        eventData.properties,
+        'diff' in eventData.properties
+          ? {
+              // we remove "before" and "after" property for a cleaner/slimmer event payload
+              diff: eventData.properties.diff,
+            }
+          : eventData.properties,
         workspaceMemberId,
         workspaceEventBatch.name.split('.')[0],
         eventData.objectMetadata.id,

@@ -2,11 +2,12 @@ import { CalendarChannel } from '@/accounts/types/CalendarChannel';
 import { CoreObjectNameSingular } from '@/object-metadata/types/CoreObjectNameSingular';
 import { useUpdateOneRecord } from '@/object-record/hooks/useUpdateOneRecord';
 import { SettingsAccountsEventVisibilitySettingsCard } from '@/settings/accounts/components/SettingsAccountsCalendarVisibilitySettingsCard';
-import { SettingsOptionCardContent } from '@/settings/components/SettingsOptionCardContent';
+import { SettingsOptionCardContentToggle } from '@/settings/components/SettingsOptions/SettingsOptionCardContentToggle';
 import styled from '@emotion/styled';
 import { Section } from '@react-email/components';
-import { Card, H2Title, Toggle } from 'twenty-ui';
+import { Card, H2Title, IconUserPlus } from 'twenty-ui';
 import { CalendarChannelVisibility } from '~/generated-metadata/graphql';
+import { t } from '@lingui/core/macro';
 
 const StyledDetailsContainer = styled.div`
   display: flex;
@@ -20,10 +21,6 @@ type SettingsAccountsCalendarChannelDetailsProps = {
     'id' | 'visibility' | 'isContactAutoCreationEnabled' | 'isSyncEnabled'
   >;
 };
-
-const StyledToggle = styled(Toggle)`
-  margin-left: auto;
-`;
 
 export const SettingsAccountsCalendarChannelDetails = ({
   calendarChannel,
@@ -54,8 +51,8 @@ export const SettingsAccountsCalendarChannelDetails = ({
     <StyledDetailsContainer>
       <Section>
         <H2Title
-          title="Event visibility"
-          description="Define what will be visible to other users in your workspace"
+          title={t`Event visibility`}
+          description={t`Define what will be visible to other users in your workspace`}
         />
         <SettingsAccountsEventVisibilitySettingsCard
           value={calendarChannel.visibility}
@@ -64,23 +61,21 @@ export const SettingsAccountsCalendarChannelDetails = ({
       </Section>
       <Section>
         <H2Title
-          title="Contact auto-creation"
-          description="Automatically create contacts for people you've participated in an event with."
+          title={t`Contact auto-creation`}
+          description={t`Automatically create contacts for people you've participated in an event with.`}
         />
-        <Card>
-          <SettingsOptionCardContent
-            title="Auto-creation"
-            description="Automatically create contacts for people."
-            onClick={() =>
+        <Card rounded>
+          <SettingsOptionCardContentToggle
+            Icon={IconUserPlus}
+            title={t`Auto-creation`}
+            description={t`Automatically create contacts for people.`}
+            checked={calendarChannel.isContactAutoCreationEnabled}
+            onChange={() => {
               handleContactAutoCreationToggle(
                 !calendarChannel.isContactAutoCreationEnabled,
-              )
-            }
-          >
-            <StyledToggle
-              value={calendarChannel.isContactAutoCreationEnabled}
-            />
-          </SettingsOptionCardContent>
+              );
+            }}
+          />
         </Card>
       </Section>
     </StyledDetailsContainer>
