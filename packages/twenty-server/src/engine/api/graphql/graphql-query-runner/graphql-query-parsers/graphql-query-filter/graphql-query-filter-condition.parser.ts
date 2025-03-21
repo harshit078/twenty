@@ -5,27 +5,32 @@ import {
   WhereExpressionBuilder,
 } from 'typeorm';
 
-import { RecordFilter } from 'src/engine/api/graphql/workspace-query-builder/interfaces/record.interface';
+import { ObjectRecordFilter } from 'src/engine/api/graphql/workspace-query-builder/interfaces/object-record.interface';
+import { FeatureFlagMap } from 'src/engine/core-modules/feature-flag/interfaces/feature-flag-map.interface';
 
-import { FieldMetadataMap } from 'src/engine/metadata-modules/utils/generate-object-metadata-map.util';
+import { FieldMetadataMap } from 'src/engine/metadata-modules/types/field-metadata-map';
 
 import { GraphqlQueryFilterFieldParser } from './graphql-query-filter-field.parser';
 
 export class GraphqlQueryFilterConditionParser {
-  private fieldMetadataMap: FieldMetadataMap;
+  private fieldMetadataMapByName: FieldMetadataMap;
   private queryFilterFieldParser: GraphqlQueryFilterFieldParser;
 
-  constructor(fieldMetadataMap: FieldMetadataMap) {
-    this.fieldMetadataMap = fieldMetadataMap;
+  constructor(
+    fieldMetadataMapByName: FieldMetadataMap,
+    featureFlagsMap: FeatureFlagMap,
+  ) {
+    this.fieldMetadataMapByName = fieldMetadataMapByName;
     this.queryFilterFieldParser = new GraphqlQueryFilterFieldParser(
-      this.fieldMetadataMap,
+      this.fieldMetadataMapByName,
+      featureFlagsMap,
     );
   }
 
   public parse(
     queryBuilder: SelectQueryBuilder<any>,
     objectNameSingular: string,
-    filter: Partial<RecordFilter>,
+    filter: Partial<ObjectRecordFilter>,
   ): SelectQueryBuilder<any> {
     if (!filter || Object.keys(filter).length === 0) {
       return queryBuilder;
@@ -50,7 +55,7 @@ export class GraphqlQueryFilterConditionParser {
     switch (key) {
       case 'and': {
         const andWhereCondition = new Brackets((qb) => {
-          value.forEach((filter: RecordFilter, index: number) => {
+          value.forEach((filter: ObjectRecordFilter, index: number) => {
             const whereCondition = new Brackets((qb2) => {
               Object.entries(filter).forEach(
                 ([subFilterkey, subFilterValue], index) => {
@@ -82,7 +87,7 @@ export class GraphqlQueryFilterConditionParser {
       }
       case 'or': {
         const orWhereCondition = new Brackets((qb) => {
-          value.forEach((filter: RecordFilter, index: number) => {
+          value.forEach((filter: ObjectRecordFilter, index: number) => {
             const whereCondition = new Brackets((qb2) => {
               Object.entries(filter).forEach(
                 ([subFilterkey, subFilterValue], index) => {

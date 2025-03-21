@@ -1,24 +1,22 @@
 import { IconFilterOff } from 'twenty-ui';
 
 import { useObjectLabel } from '@/object-metadata/hooks/useObjectLabel';
+import { useCheckIsSoftDeleteFilter } from '@/object-record/record-filter/hooks/useCheckIsSoftDeleteFilter';
+import { useRemoveRecordFilter } from '@/object-record/record-filter/hooks/useRemoveRecordFilter';
 import { useHandleToggleTrashColumnFilter } from '@/object-record/record-index/hooks/useHandleToggleTrashColumnFilter';
-import { RecordTableContext } from '@/object-record/record-table/contexts/RecordTableContext';
+import { useRecordTableContextOrThrow } from '@/object-record/record-table/contexts/RecordTableContext';
 import { RecordTableEmptyStateDisplay } from '@/object-record/record-table/empty-state/components/RecordTableEmptyStateDisplay';
-import { tableFiltersComponentState } from '@/object-record/record-table/states/tableFiltersComponentState';
 import { useRecoilComponentValueV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValueV2';
-import { useDeleteCombinedViewFilters } from '@/views/hooks/useDeleteCombinedViewFilters';
-import { useContext } from 'react';
+
+import { currentRecordFiltersComponentState } from '@/object-record/record-filter/states/currentRecordFiltersComponentState';
+import { isDefined } from 'twenty-shared';
 
 export const RecordTableEmptyStateSoftDelete = () => {
   const { objectMetadataItem, objectNameSingular, recordTableId } =
-    useContext(RecordTableContext);
+    useRecordTableContextOrThrow();
 
-  const { deleteCombinedViewFilter } =
-    useDeleteCombinedViewFilters(recordTableId);
-
-  const tableFilters = useRecoilComponentValueV2(
-    tableFiltersComponentState,
-    recordTableId,
+  const currentRecordFilters = useRecoilComponentValueV2(
+    currentRecordFiltersComponentState,
   );
 
   const { toggleSoftDeleteFilterState } = useHandleToggleTrashColumnFilter({
@@ -26,14 +24,19 @@ export const RecordTableEmptyStateSoftDelete = () => {
     viewBarId: recordTableId,
   });
 
+  const { removeRecordFilter } = useRemoveRecordFilter();
+
+  const { checkIsSoftDeleteFilter } = useCheckIsSoftDeleteFilter();
+
   const handleButtonClick = async () => {
-    deleteCombinedViewFilter(
-      tableFilters.find(
-        (filter) =>
-          filter.definition.label === 'Deleted' &&
-          filter.operand === 'isNotEmpty',
-      )?.id ?? '',
-    );
+    const deletedFilter = currentRecordFilters.find(checkIsSoftDeleteFilter);
+
+    if (!isDefined(deletedFilter)) {
+      throw new Error('Deleted filter not found');
+    }
+
+    removeRecordFilter({ recordFilterId: deletedFilter.id });
+
     toggleSoftDeleteFilterState(false);
   };
 
@@ -44,7 +47,7 @@ export const RecordTableEmptyStateSoftDelete = () => {
       buttonTitle={'Remove Deleted filter'}
       subTitle={'No deleted records matching the filter criteria were found.'}
       title={`No Deleted ${objectLabel} found`}
-      Icon={IconFilterOff}
+      ButtonIcon={IconFilterOff}
       animatedPlaceholderType="noDeletedRecord"
       onClick={handleButtonClick}
     />

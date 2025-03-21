@@ -1,59 +1,101 @@
 import { OnDragEndResponder } from '@hello-pangea/dnd';
-import { useCallback } from 'react';
 
-import { useRecordGroups } from '@/object-record/record-group/hooks/useRecordGroups';
-import { recordGroupDefinitionsComponentState } from '@/object-record/record-group/states/recordGroupDefinitionsComponentState';
-import { useSetRecoilComponentStateV2 } from '@/ui/utilities/state/component-state/hooks/useSetRecoilComponentStateV2';
+import { useContextStoreObjectMetadataItemOrThrow } from '@/context-store/hooks/useContextStoreObjectMetadataItemOrThrow';
+import { useSetRecordGroups } from '@/object-record/record-group/hooks/useSetRecordGroups';
+import { recordGroupDefinitionFamilyState } from '@/object-record/record-group/states/recordGroupDefinitionFamilyState';
+import { visibleRecordGroupIdsComponentFamilySelector } from '@/object-record/record-group/states/selectors/visibleRecordGroupIdsComponentFamilySelector';
+import { RecordGroupDefinition } from '@/object-record/record-group/types/RecordGroupDefinition';
+import { useRecoilComponentCallbackStateV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentCallbackStateV2';
+import { getSnapshotValue } from '@/ui/utilities/state/utils/getSnapshotValue';
 import { useSaveCurrentViewGroups } from '@/views/hooks/useSaveCurrentViewGroups';
+import { ViewType } from '@/views/types/ViewType';
 import { mapRecordGroupDefinitionsToViewGroups } from '@/views/utils/mapRecordGroupDefinitionsToViewGroups';
+import { useRecoilCallback } from 'recoil';
+import { isDefined } from 'twenty-shared';
 import { moveArrayItem } from '~/utils/array/moveArrayItem';
 import { isDeeplyEqual } from '~/utils/isDeeplyEqual';
 
 type UseRecordGroupHandlersParams = {
-  objectNameSingular: string;
   viewBarId: string;
+  viewType: ViewType;
 };
 
 export const useRecordGroupReorder = ({
-  objectNameSingular,
   viewBarId,
+  viewType,
 }: UseRecordGroupHandlersParams) => {
-  const setRecordGroupDefinitions = useSetRecoilComponentStateV2(
-    recordGroupDefinitionsComponentState,
+  const { setRecordGroups } = useSetRecordGroups();
+  const { objectMetadataItem } = useContextStoreObjectMetadataItemOrThrow();
+
+  const visibleRecordGroupIdsFamilySelector = useRecoilComponentCallbackStateV2(
+    visibleRecordGroupIdsComponentFamilySelector,
   );
 
-  const { visibleRecordGroups } = useRecordGroups({
-    objectNameSingular,
-  });
+  const { saveViewGroups } = useSaveCurrentViewGroups();
 
-  const { saveViewGroups } = useSaveCurrentViewGroups(viewBarId);
+  const handleOrderChange: OnDragEndResponder = useRecoilCallback(
+    ({ snapshot }) =>
+      (result) => {
+        if (!result.destination) {
+          return;
+        }
 
-  const handleOrderChange: OnDragEndResponder = useCallback(
-    (result) => {
-      if (!result.destination) {
-        return;
-      }
+        const visibleRecordGroupIds = getSnapshotValue(
+          snapshot,
+          visibleRecordGroupIdsFamilySelector(viewType),
+        );
 
-      const reorderedVisibleBoardGroups = moveArrayItem(visibleRecordGroups, {
-        fromIndex: result.source.index - 1,
-        toIndex: result.destination.index - 1,
-      });
+        const reorderedVisibleRecordGroupIds = moveArrayItem(
+          visibleRecordGroupIds,
+          {
+            fromIndex: result.source.index - 1,
+            toIndex: result.destination.index - 1,
+          },
+        );
 
-      if (isDeeplyEqual(visibleRecordGroups, reorderedVisibleBoardGroups))
-        return;
+        if (
+          isDeeplyEqual(visibleRecordGroupIds, reorderedVisibleRecordGroupIds)
+        ) {
+          return;
+        }
 
-      const updatedGroups = [...reorderedVisibleBoardGroups].map(
-        (group, index) => ({ ...group, position: index }),
-      );
+        const updatedRecordGroups = reorderedVisibleRecordGroupIds.reduce<
+          RecordGroupDefinition[]
+        >((acc, recordGroupId, index) => {
+          const recordGroupDefinition = getSnapshotValue(
+            snapshot,
+            recordGroupDefinitionFamilyState(recordGroupId),
+          );
 
-      setRecordGroupDefinitions(updatedGroups);
-      saveViewGroups(mapRecordGroupDefinitionsToViewGroups(updatedGroups));
-    },
-    [saveViewGroups, setRecordGroupDefinitions, visibleRecordGroups],
+          if (!isDefined(recordGroupDefinition)) {
+            return acc;
+          }
+
+          return [
+            ...acc,
+            {
+              ...recordGroupDefinition,
+              position: index,
+            },
+          ];
+        }, []);
+
+        setRecordGroups(updatedRecordGroups, viewBarId, objectMetadataItem.id);
+        saveViewGroups(
+          mapRecordGroupDefinitionsToViewGroups(updatedRecordGroups),
+        );
+      },
+    [
+      objectMetadataItem,
+      saveViewGroups,
+      setRecordGroups,
+      viewBarId,
+      viewType,
+      visibleRecordGroupIdsFamilySelector,
+    ],
   );
 
   return {
-    visibleRecordGroups,
     handleOrderChange,
   };
 };

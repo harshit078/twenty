@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 
-import { EntityManager } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 
-import { buildCreatedByFromWorkspaceMember } from 'src/engine/core-modules/actor/utils/build-created-by-from-workspace-member.util';
-import { User } from 'src/engine/core-modules/user/user.entity';
+import { DatabaseEventAction } from 'src/engine/api/graphql/graphql-query-runner/enums/database-event-action';
+import { InjectMessageQueue } from 'src/engine/core-modules/message-queue/decorators/message-queue.decorator';
+import { MessageQueue } from 'src/engine/core-modules/message-queue/message-queue.constants';
+import { MessageQueueService } from 'src/engine/core-modules/message-queue/services/message-queue.service';
+import { ObjectMetadataEntity } from 'src/engine/metadata-modules/object-metadata/object-metadata.entity';
 import { ScopedWorkspaceContextFactory } from 'src/engine/twenty-orm/factories/scoped-workspace-context.factory';
 import { WorkspaceRepository } from 'src/engine/twenty-orm/repository/workspace.repository';
 import { TwentyORMManager } from 'src/engine/twenty-orm/twenty-orm.manager';
@@ -16,16 +20,22 @@ import { WorkflowWorkspaceEntity } from 'src/modules/workflow/common/standard-ob
 import { assertWorkflowVersionTriggerIsDefined } from 'src/modules/workflow/common/utils/assert-workflow-version-trigger-is-defined.util';
 import { WorkflowCommonWorkspaceService } from 'src/modules/workflow/common/workspace-services/workflow-common.workspace-service';
 import { WorkflowRunnerWorkspaceService } from 'src/modules/workflow/workflow-runner/workspace-services/workflow-runner.workspace-service';
+import { WORKFLOW_VERSION_STATUS_UPDATED } from 'src/modules/workflow/workflow-status/constants/workflow-version-status-updated.constants';
 import { WorkflowVersionStatusUpdate } from 'src/modules/workflow/workflow-status/jobs/workflow-statuses-update.job';
 import { DatabaseEventTriggerService } from 'src/modules/workflow/workflow-trigger/database-event-trigger/database-event-trigger.service';
 import {
   WorkflowTriggerException,
   WorkflowTriggerExceptionCode,
 } from 'src/modules/workflow/workflow-trigger/exceptions/workflow-trigger.exception';
+import {
+  WorkflowTriggerJob,
+  WorkflowTriggerJobData,
+} from 'src/modules/workflow/workflow-trigger/jobs/workflow-trigger.job';
 import { WorkflowTriggerType } from 'src/modules/workflow/workflow-trigger/types/workflow-trigger.type';
 import { assertVersionCanBeActivated } from 'src/modules/workflow/workflow-trigger/utils/assert-version-can-be-activated.util';
+import { computeCronPatternFromSchedule } from 'src/modules/workflow/workflow-trigger/utils/compute-cron-pattern-from-schedule';
 import { assertNever } from 'src/utils/assert';
-import { DatabaseEventAction } from 'src/engine/api/graphql/graphql-query-runner/enums/database-event-action';
+import { ActorMetadata } from 'src/engine/metadata-modules/field-metadata/composite-types/actor.composite-type';
 
 @Injectable()
 export class WorkflowTriggerWorkspaceService {
@@ -36,14 +46,13 @@ export class WorkflowTriggerWorkspaceService {
     private readonly workflowRunnerWorkspaceService: WorkflowRunnerWorkspaceService,
     private readonly databaseEventTriggerService: DatabaseEventTriggerService,
     private readonly workspaceEventEmitter: WorkspaceEventEmitter,
+    @InjectRepository(ObjectMetadataEntity, 'metadata')
+    private readonly objectMetadataRepository: Repository<ObjectMetadataEntity>,
+    @InjectMessageQueue(MessageQueue.workflowQueue)
+    private readonly messageQueueService: MessageQueueService,
   ) {}
 
-  async runWorkflowVersion(
-    workflowVersionId: string,
-    payload: object,
-    workspaceMemberId: string,
-    user: User,
-  ) {
+  private getWorkspaceId() {
     const workspaceId = this.scopedWorkspaceContextFactory.create().workspaceId;
 
     if (!workspaceId) {
@@ -53,15 +62,27 @@ export class WorkflowTriggerWorkspaceService {
       );
     }
 
+    return workspaceId;
+  }
+
+  async runWorkflowVersion({
+    workflowVersionId,
+    payload,
+    createdBy,
+  }: {
+    workflowVersionId: string;
+    payload: object;
+    createdBy: ActorMetadata;
+  }) {
     await this.workflowCommonWorkspaceService.getWorkflowVersionOrFail(
       workflowVersionId,
     );
 
     return await this.workflowRunnerWorkspaceService.run(
-      workspaceId,
+      this.getWorkspaceId(),
       workflowVersionId,
       payload,
-      buildCreatedByFromWorkspaceMember(workspaceMemberId, user),
+      createdBy,
     );
   }
 
@@ -246,10 +267,10 @@ export class WorkflowTriggerWorkspaceService {
       manager,
     );
 
-    this.emitStatusUpdateEventOrThrow(
-      workflowVersion.workflowId,
-      workflowVersion.status,
+    await this.emitStatusUpdateEvents(
+      workflowVersion,
       WorkflowVersionStatus.ACTIVE,
+      this.getWorkspaceId(),
     );
   }
 
@@ -271,10 +292,10 @@ export class WorkflowTriggerWorkspaceService {
       manager,
     );
 
-    this.emitStatusUpdateEventOrThrow(
-      workflowVersion.workflowId,
-      workflowVersion.status,
+    await this.emitStatusUpdateEvents(
+      workflowVersion,
       WorkflowVersionStatus.DEACTIVATED,
+      this.getWorkspaceId(),
     );
   }
 
@@ -320,7 +341,28 @@ export class WorkflowTriggerWorkspaceService {
 
         return;
       case WorkflowTriggerType.MANUAL:
+      case WorkflowTriggerType.WEBHOOK:
         return;
+      case WorkflowTriggerType.CRON: {
+        const pattern = computeCronPatternFromSchedule(workflowVersion.trigger);
+
+        await this.messageQueueService.addCron<WorkflowTriggerJobData>({
+          jobName: WorkflowTriggerJob.name,
+          jobId: workflowVersion.workflowId,
+          data: {
+            workspaceId: this.getWorkspaceId(),
+            workflowId: workflowVersion.workflowId,
+            payload: {},
+          },
+          options: {
+            repeat: {
+              pattern,
+            },
+          },
+        });
+
+        return;
+      }
       default: {
         assertNever(workflowVersion.trigger);
       }
@@ -342,34 +384,61 @@ export class WorkflowTriggerWorkspaceService {
 
         return;
       case WorkflowTriggerType.MANUAL:
+      case WorkflowTriggerType.WEBHOOK:
+        return;
+      case WorkflowTriggerType.CRON:
+        await this.messageQueueService.removeCron({
+          jobName: WorkflowTriggerJob.name,
+          jobId: workflowVersion.workflowId,
+        });
+
         return;
       default:
         assertNever(workflowVersion.trigger);
     }
   }
 
-  private emitStatusUpdateEventOrThrow(
-    workflowId: string,
-    previousStatus: WorkflowVersionStatus,
+  private async emitStatusUpdateEvents(
+    workflowVersion: WorkflowVersionWorkspaceEntity,
     newStatus: WorkflowVersionStatus,
+    workspaceId: string,
   ) {
-    const workspaceId = this.scopedWorkspaceContextFactory.create().workspaceId;
+    const objectMetadata = await this.objectMetadataRepository.findOneOrFail({
+      where: {
+        nameSingular: 'workflowVersion',
+        workspaceId,
+      },
+    });
 
-    if (!workspaceId) {
-      throw new WorkflowTriggerException(
-        'No workspace id found',
-        WorkflowTriggerExceptionCode.INTERNAL_ERROR,
-      );
-    }
+    this.workspaceEventEmitter.emitDatabaseBatchEvent({
+      objectMetadataNameSingular: 'workflowVersion',
+      action: DatabaseEventAction.UPDATED,
+      events: [
+        {
+          recordId: workflowVersion.id,
+          objectMetadata,
+          properties: {
+            before: workflowVersion,
+            after: { ...workflowVersion, status: newStatus },
+            updatedFields: ['status'],
+            diff: {
+              status: { before: workflowVersion.status, after: newStatus },
+            },
+          },
+        },
+      ],
+      workspaceId,
+    });
 
-    this.workspaceEventEmitter.emit(
-      `workflowVersion.${DatabaseEventAction.UPDATED}`,
+    this.workspaceEventEmitter.emitCustomBatchEvent<WorkflowVersionStatusUpdate>(
+      WORKFLOW_VERSION_STATUS_UPDATED,
       [
         {
-          workflowId,
-          previousStatus,
+          workflowId: workflowVersion.workflowId,
+          workflowVersionId: workflowVersion.id,
+          previousStatus: workflowVersion.status,
           newStatus,
-        } satisfies WorkflowVersionStatusUpdate,
+        },
       ],
       workspaceId,
     );

@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 
+import { ConnectedAccountProvider } from 'twenty-shared';
+
 import { ConnectedAccountWorkspaceEntity } from 'src/modules/connected-account/standard-objects/connected-account.workspace-entity';
 import { GmailGetMessagesService } from 'src/modules/messaging/message-import-manager/drivers/gmail/services/gmail-get-messages.service';
+import { MicrosoftGetMessagesService } from 'src/modules/messaging/message-import-manager/drivers/microsoft/services/microsoft-get-messages.service';
 import {
   MessageImportException,
   MessageImportExceptionCode,
@@ -14,6 +17,7 @@ export type GetMessagesResponse = MessageWithParticipants[];
 export class MessagingGetMessagesService {
   constructor(
     private readonly gmailGetMessagesService: GmailGetMessagesService,
+    private readonly microsoftGetMessagesService: MicrosoftGetMessagesService,
   ) {}
 
   public async getMessages(
@@ -30,8 +34,14 @@ export class MessagingGetMessagesService {
     workspaceId: string,
   ): Promise<GetMessagesResponse> {
     switch (connectedAccount.provider) {
-      case 'google':
+      case ConnectedAccountProvider.GOOGLE:
         return this.gmailGetMessagesService.getMessages(
+          messageIds,
+          connectedAccount,
+          workspaceId,
+        );
+      case ConnectedAccountProvider.MICROSOFT:
+        return this.microsoftGetMessagesService.getMessages(
           messageIds,
           connectedAccount,
           workspaceId,

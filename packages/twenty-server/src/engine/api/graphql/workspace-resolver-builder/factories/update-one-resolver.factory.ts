@@ -8,17 +8,17 @@ import {
 } from 'src/engine/api/graphql/workspace-resolver-builder/interfaces/workspace-resolvers-builder.interface';
 import { WorkspaceSchemaBuilderContext } from 'src/engine/api/graphql/workspace-schema-builder/interfaces/workspace-schema-builder-context.interface';
 
-import { GraphqlQueryRunnerService } from 'src/engine/api/graphql/graphql-query-runner/graphql-query-runner.service';
-import { workspaceQueryRunnerGraphqlApiExceptionHandler } from 'src/engine/api/graphql/workspace-query-runner/utils/workspace-query-runner-graphql-api-exception-handler.util';
+import { GraphqlQueryUpdateOneResolverService } from 'src/engine/api/graphql/graphql-query-runner/resolvers/graphql-query-update-one-resolver.service';
+import { RESOLVER_METHOD_NAMES } from 'src/engine/api/graphql/workspace-resolver-builder/constants/resolver-method-names';
 
 @Injectable()
 export class UpdateOneResolverFactory
   implements WorkspaceResolverBuilderFactoryInterface
 {
-  public static methodName = 'updateOne' as const;
+  public static methodName = RESOLVER_METHOD_NAMES.UPDATE_ONE;
 
   constructor(
-    private readonly graphqlQueryRunnerService: GraphqlQueryRunnerService,
+    private readonly graphqlQueryRunnerService: GraphqlQueryUpdateOneResolverService,
   ) {}
 
   create(
@@ -27,21 +27,19 @@ export class UpdateOneResolverFactory
     const internalContext = context;
 
     return async (_source, args, context, info) => {
-      try {
-        const options: WorkspaceQueryRunnerOptions = {
-          authContext: internalContext.authContext,
-          objectMetadataItem: internalContext.objectMetadataItem,
-          info,
-          fieldMetadataCollection: internalContext.fieldMetadataCollection,
-          objectMetadataCollection: internalContext.objectMetadataCollection,
-          objectMetadataMap: internalContext.objectMetadataMap,
-          objectMetadataMapItem: internalContext.objectMetadataMapItem,
-        };
+      const options: WorkspaceQueryRunnerOptions = {
+        authContext: internalContext.authContext,
+        info,
+        objectMetadataMaps: internalContext.objectMetadataMaps,
+        objectMetadataItemWithFieldMaps:
+          internalContext.objectMetadataItemWithFieldMaps,
+      };
 
-        return await this.graphqlQueryRunnerService.updateOne(args, options);
-      } catch (error) {
-        workspaceQueryRunnerGraphqlApiExceptionHandler(error, internalContext);
-      }
+      return await this.graphqlQueryRunnerService.execute(
+        args,
+        options,
+        UpdateOneResolverFactory.methodName,
+      );
     };
   }
 }

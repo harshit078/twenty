@@ -26,8 +26,6 @@ const StyledTimelineContainer = styled.div`
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing(1)};
   justify-content: flex-start;
-
-  width: calc(100% - ${({ theme }) => theme.spacing(8)});
 `;
 
 export const EventList = ({ events, targetableObject }: EventListProps) => {
@@ -46,7 +44,10 @@ export const EventList = ({ events, targetableObject }: EventListProps) => {
   const groupedEvents = groupEventsByMonth(filteredEvents);
 
   return (
-    <ScrollWrapper contextProviderName="eventList">
+    <ScrollWrapper
+      contextProviderName="eventList"
+      componentInstanceId={`scroll-wrapper-event-list-${targetableObject.id}`}
+    >
       <StyledTimelineContainer>
         {groupedEvents.map((group, index) => (
           <EventsGroup

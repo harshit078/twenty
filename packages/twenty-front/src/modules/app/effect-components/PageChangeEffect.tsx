@@ -1,36 +1,36 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  matchPath,
+  useLocation,
+  useNavigate,
+  useParams,
+} from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
 
-import { useOpenCreateActivityDrawer } from '@/activities/hooks/useOpenCreateActivityDrawer';
 import {
   setSessionId,
   useEventTracker,
 } from '@/analytics/hooks/useEventTracker';
 import { useRequestFreshCaptchaToken } from '@/captcha/hooks/useRequestFreshCaptchaToken';
 import { isCaptchaScriptLoadedState } from '@/captcha/states/isCaptchaScriptLoadedState';
-import { useCommandMenu } from '@/command-menu/hooks/useCommandMenu';
-import { CommandType } from '@/command-menu/types/Command';
-import { useNonSystemActiveObjectMetadataItems } from '@/object-metadata/hooks/useNonSystemActiveObjectMetadataItems';
-import { objectMetadataItemsState } from '@/object-metadata/states/objectMetadataItemsState';
-import { CoreObjectNameSingular } from '@/object-metadata/types/CoreObjectNameSingular';
+import { CoreObjectNamePlural } from '@/object-metadata/types/CoreObjectNamePlural';
+import { useResetTableRowSelection } from '@/object-record/record-table/hooks/internal/useResetTableRowSelection';
 import { TableHotkeyScope } from '@/object-record/record-table/types/TableHotkeyScope';
 import { AppBasePath } from '@/types/AppBasePath';
 import { AppPath } from '@/types/AppPath';
 import { PageHotkeyScope } from '@/types/PageHotkeyScope';
 import { SettingsPath } from '@/types/SettingsPath';
 import { useSetHotkeyScope } from '@/ui/utilities/hotkey/hooks/useSetHotkeyScope';
-import { IconCheckbox } from 'twenty-ui';
-import { useCleanRecoilState } from '~/hooks/useCleanRecoilState';
+import { isDefined } from 'twenty-shared';
 import { useIsMatchingLocation } from '~/hooks/useIsMatchingLocation';
 import { usePageChangeEffectNavigateLocation } from '~/hooks/usePageChangeEffectNavigateLocation';
-import { isDefined } from '~/utils/isDefined';
+import { isCaptchaRequiredForPath } from '@/captcha/utils/isCaptchaRequiredForPath';
 
 // TODO: break down into smaller functions and / or hooks
 //  - moved usePageChangeEffectNavigateLocation into dedicated hook
 export const PageChangeEffect = () => {
   const navigate = useNavigate();
-  const isMatchingLocation = useIsMatchingLocation();
+  const { isMatchingLocation } = useIsMatchingLocation();
 
   const [previousLocation, setPreviousLocation] = useState('');
 
@@ -41,21 +41,14 @@ export const PageChangeEffect = () => {
   const pageChangeEffectNavigateLocation =
     usePageChangeEffectNavigateLocation();
 
-  const { cleanRecoilState } = useCleanRecoilState();
-
   const eventTracker = useEventTracker();
 
-  const { addToCommandMenu, setObjectsInCommandMenu } = useCommandMenu();
+  //TODO: refactor useResetTableRowSelection hook to not throw when the argument `recordTableId` is an empty string
+  // - replace CoreObjectNamePlural.Person
+  const objectNamePlural =
+    useParams().objectNamePlural ?? CoreObjectNamePlural.Person;
 
-  const objectMetadataItems = useRecoilValue(objectMetadataItemsState);
-
-  const openCreateActivity = useOpenCreateActivityDrawer({
-    activityObjectNameSingular: CoreObjectNameSingular.Task,
-  });
-
-  useEffect(() => {
-    cleanRecoilState();
-  }, [cleanRecoilState]);
+  const resetTableSelections = useResetTableRowSelection(objectNamePlural);
 
   useEffect(() => {
     if (!previousLocation || previousLocation !== location.pathname) {
@@ -70,6 +63,17 @@ export const PageChangeEffect = () => {
       navigate(pageChangeEffectNavigateLocation);
     }
   }, [navigate, pageChangeEffectNavigateLocation]);
+
+  useEffect(() => {
+    const isLeavingRecordIndexPage = !!matchPath(
+      AppPath.RecordIndexPage,
+      previousLocation,
+    );
+
+    if (isLeavingRecordIndexPage) {
+      resetTableSelections();
+    }
+  }, [isMatchingLocation, previousLocation, resetTableSelections]);
 
   useEffect(() => {
     switch (true) {
@@ -137,6 +141,13 @@ export const PageChangeEffect = () => {
         });
         break;
       }
+      case isMatchingLocation(SettingsPath.Domain, AppBasePath.Settings): {
+        setHotkeyScope(PageHotkeyScope.Settings, {
+          goto: false,
+          keyboardShortcutMenu: true,
+        });
+        break;
+      }
       case isMatchingLocation(
         SettingsPath.WorkspaceMembersPage,
         AppBasePath.Settings,
@@ -149,33 +160,6 @@ export const PageChangeEffect = () => {
       }
     }
   }, [isMatchingLocation, setHotkeyScope]);
-
-  const { nonSystemActiveObjectMetadataItems } =
-    useNonSystemActiveObjectMetadataItems();
-
-  useEffect(() => {
-    setObjectsInCommandMenu(nonSystemActiveObjectMetadataItems);
-
-    addToCommandMenu([
-      {
-        id: 'create-task',
-        to: '',
-        label: 'Create Task',
-        type: CommandType.Create,
-        Icon: IconCheckbox,
-        onCommandClick: () =>
-          openCreateActivity({
-            targetableObjects: [],
-          }),
-      },
-    ]);
-  }, [
-    nonSystemActiveObjectMetadataItems,
-    addToCommandMenu,
-    setObjectsInCommandMenu,
-    openCreateActivity,
-    objectMetadataItems,
-  ]);
 
   useEffect(() => {
     setTimeout(() => {
@@ -195,15 +179,10 @@ export const PageChangeEffect = () => {
   const isCaptchaScriptLoaded = useRecoilValue(isCaptchaScriptLoadedState);
 
   useEffect(() => {
-    if (
-      isCaptchaScriptLoaded &&
-      (isMatchingLocation(AppPath.SignInUp) ||
-        isMatchingLocation(AppPath.Invite) ||
-        isMatchingLocation(AppPath.ResetPassword))
-    ) {
+    if (isCaptchaScriptLoaded && isCaptchaRequiredForPath(location.pathname)) {
       requestFreshCaptchaToken();
     }
-  }, [isCaptchaScriptLoaded, isMatchingLocation, requestFreshCaptchaToken]);
+  }, [isCaptchaScriptLoaded, location.pathname, requestFreshCaptchaToken]);
 
   return <></>;
 };

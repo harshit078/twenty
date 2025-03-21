@@ -3,38 +3,55 @@ import { InjectRepository } from '@nestjs/typeorm';
 import assert from 'assert';
 
 import { TypeOrmQueryService } from '@ptc-org/nestjs-query-typeorm';
+import { isWorkspaceActiveOrSuspended } from 'twenty-shared';
 import { Repository } from 'typeorm';
 
 import { TypeORMService } from 'src/database/typeorm/typeorm.service';
-import { ObjectRecordDeleteEvent } from 'src/engine/core-modules/event-emitter/types/object-record-delete.event';
-import { User } from 'src/engine/core-modules/user/user.entity';
-import { WorkspaceService } from 'src/engine/core-modules/workspace/services/workspace.service';
+import { DatabaseEventAction } from 'src/engine/api/graphql/graphql-query-runner/enums/database-event-action';
 import {
-  Workspace,
-  WorkspaceActivationStatus,
-} from 'src/engine/core-modules/workspace/workspace.entity';
+  AuthException,
+  AuthExceptionCode,
+} from 'src/engine/core-modules/auth/auth.exception';
+import { FeatureFlagKey } from 'src/engine/core-modules/feature-flag/enums/feature-flag-key.enum';
+import { FeatureFlagService } from 'src/engine/core-modules/feature-flag/services/feature-flag.service';
+import { UserWorkspaceService } from 'src/engine/core-modules/user-workspace/user-workspace.service';
+import { User } from 'src/engine/core-modules/user/user.entity';
+import { userValidator } from 'src/engine/core-modules/user/user.validate';
+import { WorkspaceService } from 'src/engine/core-modules/workspace/services/workspace.service';
+import { Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
 import { DataSourceService } from 'src/engine/metadata-modules/data-source/data-source.service';
+import { ObjectMetadataEntity } from 'src/engine/metadata-modules/object-metadata/object-metadata.entity';
+import {
+  PermissionsException,
+  PermissionsExceptionCode,
+  PermissionsExceptionMessage,
+} from 'src/engine/metadata-modules/permissions/permissions.exception';
+import { UserRoleService } from 'src/engine/metadata-modules/user-role/user-role.service';
 import { TwentyORMGlobalManager } from 'src/engine/twenty-orm/twenty-orm-global.manager';
 import { WorkspaceEventEmitter } from 'src/engine/workspace-event-emitter/workspace-event-emitter';
 import { WorkspaceMemberWorkspaceEntity } from 'src/modules/workspace-member/standard-objects/workspace-member.workspace-entity';
-import { DatabaseEventAction } from 'src/engine/api/graphql/graphql-query-runner/enums/database-event-action';
 
 // eslint-disable-next-line @nx/workspace-inject-workspace-repository
 export class UserService extends TypeOrmQueryService<User> {
   constructor(
     @InjectRepository(User, 'core')
     private readonly userRepository: Repository<User>,
+    @InjectRepository(ObjectMetadataEntity, 'metadata')
+    private readonly objectMetadataRepository: Repository<ObjectMetadataEntity>,
     private readonly dataSourceService: DataSourceService,
     private readonly typeORMService: TypeORMService,
     private readonly workspaceEventEmitter: WorkspaceEventEmitter,
     private readonly workspaceService: WorkspaceService,
     private readonly twentyORMGlobalManager: TwentyORMGlobalManager,
+    private readonly userRoleService: UserRoleService,
+    private readonly userWorkspaceService: UserWorkspaceService,
+    private readonly featureFlagService: FeatureFlagService,
   ) {
     super(userRepository);
   }
 
   async loadWorkspaceMember(user: User, workspace: Workspace) {
-    if (workspace?.activationStatus !== WorkspaceActivationStatus.ACTIVE) {
+    if (!isWorkspaceActiveOrSuspended(workspace)) {
       return null;
     }
 
@@ -44,17 +61,15 @@ export class UserService extends TypeOrmQueryService<User> {
         'workspaceMember',
       );
 
-    const workspaceMember = await workspaceMemberRepository.findOne({
+    return await workspaceMemberRepository.findOne({
       where: {
         userId: user.id,
       },
     });
-
-    return workspaceMember;
   }
 
   async loadWorkspaceMembers(workspace: Workspace) {
-    if (workspace.activationStatus !== WorkspaceActivationStatus.ACTIVE) {
+    if (!isWorkspaceActiveOrSuspended(workspace)) {
       return [];
     }
 
@@ -64,23 +79,16 @@ export class UserService extends TypeOrmQueryService<User> {
         'workspaceMember',
       );
 
-    const workspaceMembers = workspaceMemberRepository.find();
-
-    return workspaceMembers;
+    return workspaceMemberRepository.find();
   }
 
-  async deleteUser(userId: string): Promise<User> {
-    const user = await this.userRepository.findOne({
-      where: {
-        id: userId,
-      },
-      relations: ['defaultWorkspace'],
-    });
-
-    assert(user, 'User not found');
-
-    const workspaceId = user.defaultWorkspaceId;
-
+  private async deleteUserFromWorkspace({
+    userId,
+    workspaceId,
+  }: {
+    userId: string;
+    workspaceId: string;
+  }) {
     const dataSourceMetadata =
       await this.dataSourceService.getLastDataSourceMetadataFromWorkspaceIdOrFail(
         workspaceId,
@@ -89,38 +97,145 @@ export class UserService extends TypeOrmQueryService<User> {
     const workspaceDataSource =
       await this.typeORMService.connectToDataSource(dataSourceMetadata);
 
+    const isPermissionsEnabled = await this.featureFlagService.isFeatureEnabled(
+      FeatureFlagKey.IsPermissionsEnabled,
+      workspaceId,
+    );
+
     const workspaceMembers = await workspaceDataSource?.query(
       `SELECT * FROM ${dataSourceMetadata.schema}."workspaceMember"`,
     );
+
+    if (isPermissionsEnabled && workspaceMembers.length > 1) {
+      const userWorkspace =
+        await this.userWorkspaceService.getUserWorkspaceForUserOrThrow({
+          userId,
+          workspaceId,
+        });
+
+      await this.userRoleService.validateUserWorkspaceIsNotUniqueAdminOrThrow({
+        workspaceId,
+        userWorkspaceId: userWorkspace.id,
+      });
+    }
+
     const workspaceMember = workspaceMembers.filter(
       (member: WorkspaceMemberWorkspaceEntity) => member.userId === userId,
     )?.[0];
 
     assert(workspaceMember, 'WorkspaceMember not found');
 
-    if (workspaceMembers.length === 1) {
-      await this.workspaceService.deleteWorkspace(workspaceId);
-
-      return user;
-    }
-
     await workspaceDataSource?.query(
       `DELETE FROM ${dataSourceMetadata.schema}."workspaceMember" WHERE "userId" = '${userId}'`,
     );
-    const payload =
-      new ObjectRecordDeleteEvent<WorkspaceMemberWorkspaceEntity>();
 
-    payload.properties = {
-      before: workspaceMember,
-    };
-    payload.recordId = workspaceMember.id;
+    const objectMetadata = await this.objectMetadataRepository.findOneOrFail({
+      where: {
+        nameSingular: 'workspaceMember',
+        workspaceId,
+      },
+    });
 
-    this.workspaceEventEmitter.emit(
-      `workspaceMember.${DatabaseEventAction.DELETED}`,
-      [payload],
+    if (workspaceMembers.length === 1) {
+      await this.workspaceService.deleteWorkspace(workspaceId);
+
+      return;
+    }
+
+    this.workspaceEventEmitter.emitDatabaseBatchEvent({
+      objectMetadataNameSingular: 'workspaceMember',
+      action: DatabaseEventAction.DELETED,
+      events: [
+        {
+          recordId: workspaceMember.id,
+          objectMetadata,
+          properties: {
+            before: workspaceMember,
+          },
+        },
+      ],
       workspaceId,
+    });
+  }
+
+  async deleteUser(userId: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: {
+        id: userId,
+      },
+      relations: ['workspaces'],
+    });
+
+    userValidator.assertIsDefinedOrThrow(user);
+
+    await Promise.all(
+      user.workspaces.map(async (userWorkspace) => {
+        try {
+          await this.deleteUserFromWorkspace({
+            userId,
+            workspaceId: userWorkspace.workspaceId,
+          });
+        } catch (error: any) {
+          if (
+            error instanceof PermissionsException &&
+            error.code === PermissionsExceptionCode.CANNOT_UNASSIGN_LAST_ADMIN
+          ) {
+            throw new PermissionsException(
+              PermissionsExceptionMessage.CANNOT_DELETE_LAST_ADMIN_USER,
+              PermissionsExceptionCode.CANNOT_DELETE_LAST_ADMIN_USER,
+            );
+          }
+          throw error;
+        }
+      }),
     );
 
     return user;
+  }
+
+  async hasUserAccessToWorkspaceOrThrow(userId: string, workspaceId: string) {
+    const user = await this.userRepository.findOne({
+      where: {
+        id: userId,
+        workspaces: {
+          workspaceId,
+        },
+      },
+      relations: ['workspaces'],
+    });
+
+    userValidator.assertIsDefinedOrThrow(
+      user,
+      new AuthException(
+        'User does not have access to this workspace',
+        AuthExceptionCode.FORBIDDEN_EXCEPTION,
+      ),
+    );
+  }
+
+  async getUserByEmail(email: string) {
+    const user = await this.userRepository.findOne({
+      where: {
+        email,
+      },
+    });
+
+    userValidator.assertIsDefinedOrThrow(user);
+
+    return user;
+  }
+
+  async markEmailAsVerified(userId: string) {
+    const user = await this.userRepository.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    userValidator.assertIsDefinedOrThrow(user);
+
+    user.isEmailVerified = true;
+
+    return await this.userRepository.save(user);
   }
 }

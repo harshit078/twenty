@@ -1,70 +1,71 @@
 import styled from '@emotion/styled';
 import { DropResult } from '@hello-pangea/dnd';
 import { MouseEvent, useCallback } from 'react';
-import {
-  IconLock,
-  IconPencil,
-  IconPlus,
-  LightIconButtonAccent,
-  useIcons,
-} from 'twenty-ui';
+import { IconPlus, MenuItem } from 'twenty-ui';
 
+import { useContextStoreObjectMetadataItemOrThrow } from '@/context-store/hooks/useContextStoreObjectMetadataItemOrThrow';
+import { prefetchViewsFromObjectMetadataItemFamilySelector } from '@/prefetch/states/selector/prefetchViewsFromObjectMetadataItemFamilySelector';
 import { DraggableItem } from '@/ui/layout/draggable-list/components/DraggableItem';
 import { DraggableList } from '@/ui/layout/draggable-list/components/DraggableList';
 import { DropdownMenuItemsContainer } from '@/ui/layout/dropdown/components/DropdownMenuItemsContainer';
 import { DropdownMenuSeparator } from '@/ui/layout/dropdown/components/DropdownMenuSeparator';
-import { useDropdown } from '@/ui/layout/dropdown/hooks/useDropdown';
-import { MenuItem } from '@/ui/navigation/menu-item/components/MenuItem';
-import { MenuItemDraggable } from '@/ui/navigation/menu-item/components/MenuItemDraggable';
 import { useSetRecoilComponentStateV2 } from '@/ui/utilities/state/component-state/hooks/useSetRecoilComponentStateV2';
 import { useChangeView } from '@/views/hooks/useChangeView';
-import { useGetCurrentView } from '@/views/hooks/useGetCurrentView';
+import { useGetCurrentViewOnly } from '@/views/hooks/useGetCurrentViewOnly';
 import { useUpdateView } from '@/views/hooks/useUpdateView';
-import { VIEW_PICKER_DROPDOWN_ID } from '@/views/view-picker/constants/ViewPickerDropdownId';
+import { ViewPickerOptionDropdown } from '@/views/view-picker/components/ViewPickerOptionDropdown';
 import { useViewPickerMode } from '@/views/view-picker/hooks/useViewPickerMode';
 import { viewPickerReferenceViewIdComponentState } from '@/views/view-picker/states/viewPickerReferenceViewIdComponentState';
+import { useLingui } from '@lingui/react/macro';
+import { useRecoilValue } from 'recoil';
+import { isDefined } from 'twenty-shared';
 import { moveArrayItem } from '~/utils/array/moveArrayItem';
-import { isDefined } from '~/utils/isDefined';
 
 const StyledBoldDropdownMenuItemsContainer = styled(DropdownMenuItemsContainer)`
   font-weight: ${({ theme }) => theme.font.weight.regular};
 `;
 
 export const ViewPickerListContent = () => {
-  const { currentViewWithCombinedFiltersAndSorts, viewsOnCurrentObject } =
-    useGetCurrentView();
+  const { t } = useLingui();
+
+  const { objectMetadataItem } = useContextStoreObjectMetadataItemOrThrow();
+
+  const viewsOnCurrentObject = useRecoilValue(
+    prefetchViewsFromObjectMetadataItemFamilySelector({
+      objectMetadataItemId: objectMetadataItem.id,
+    }),
+  );
+
+  const { currentView } = useGetCurrentViewOnly();
+
   const setViewPickerReferenceViewId = useSetRecoilComponentStateV2(
     viewPickerReferenceViewIdComponentState,
   );
 
   const { setViewPickerMode } = useViewPickerMode();
 
-  const { closeDropdown } = useDropdown(VIEW_PICKER_DROPDOWN_ID);
   const { updateView } = useUpdateView();
   const { changeView } = useChangeView();
 
   const handleViewSelect = (viewId: string) => {
     changeView(viewId);
-    closeDropdown();
   };
 
   const handleAddViewButtonClick = () => {
-    if (isDefined(currentViewWithCombinedFiltersAndSorts?.id)) {
-      setViewPickerReferenceViewId(currentViewWithCombinedFiltersAndSorts.id);
+    if (isDefined(currentView?.id)) {
+      setViewPickerReferenceViewId(currentView.id);
       setViewPickerMode('create-empty');
     }
   };
 
   const handleEditViewButtonClick = (
-    event: MouseEvent<HTMLButtonElement>,
+    event: MouseEvent<HTMLElement>,
     viewId: string,
   ) => {
     event.stopPropagation();
     setViewPickerReferenceViewId(viewId);
     setViewPickerMode('edit');
   };
-
-  const { getIcon } = useIcons();
 
   const handleDragEnd = useCallback(
     (result: DropResult) => {
@@ -87,54 +88,33 @@ export const ViewPickerListContent = () => {
       <DropdownMenuItemsContainer>
         <DraggableList
           onDragEnd={handleDragEnd}
-          draggableItems={viewsOnCurrentObject.map((view, index) => (
-            <DraggableItem
-              key={view.id}
-              draggableId={view.id}
-              index={index}
-              isDragDisabled={viewsOnCurrentObject.length === 1}
-              itemComponent={
-                view.key === 'INDEX' ? (
-                  <MenuItemDraggable
-                    key={view.id}
-                    iconButtons={[
-                      {
-                        Icon: IconLock,
-                      },
-                    ].filter(isDefined)}
-                    isIconDisplayedOnHoverOnly={false}
-                    onClick={() => handleViewSelect(view.id)}
-                    LeftIcon={getIcon(view.icon)}
-                    text={view.name}
+          draggableItems={viewsOnCurrentObject.map((view, index) => {
+            const isIndexView = view.key === 'INDEX';
+            return (
+              <DraggableItem
+                key={view.id}
+                draggableId={view.id}
+                index={index}
+                isDragDisabled={viewsOnCurrentObject.length === 1}
+                itemComponent={
+                  <ViewPickerOptionDropdown
+                    view={{ ...view, __typename: 'View' }}
+                    handleViewSelect={handleViewSelect}
+                    isIndexView={isIndexView}
+                    onEdit={handleEditViewButtonClick}
                   />
-                ) : (
-                  <MenuItemDraggable
-                    key={view.id}
-                    iconButtons={[
-                      {
-                        Icon: IconPencil,
-                        onClick: (event: MouseEvent<HTMLButtonElement>) =>
-                          handleEditViewButtonClick(event, view.id),
-                        accent: 'tertiary' as LightIconButtonAccent,
-                      },
-                    ].filter(isDefined)}
-                    isIconDisplayedOnHoverOnly={true}
-                    onClick={() => handleViewSelect(view.id)}
-                    LeftIcon={getIcon(view.icon)}
-                    text={view.name}
-                  />
-                )
-              }
-            />
-          ))}
+                }
+              />
+            );
+          })}
         />
       </DropdownMenuItemsContainer>
       <DropdownMenuSeparator />
-      <StyledBoldDropdownMenuItemsContainer>
+      <StyledBoldDropdownMenuItemsContainer scrollable={false}>
         <MenuItem
           onClick={handleAddViewButtonClick}
           LeftIcon={IconPlus}
-          text="Add view"
+          text={t`Add view`}
         />
       </StyledBoldDropdownMenuItemsContainer>
     </>

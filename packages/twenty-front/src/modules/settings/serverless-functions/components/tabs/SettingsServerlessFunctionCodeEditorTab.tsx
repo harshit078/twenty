@@ -4,14 +4,12 @@ import {
 } from '@/settings/serverless-functions/components/SettingsServerlessFunctionCodeEditor';
 import { SETTINGS_SERVERLESS_FUNCTION_TAB_LIST_COMPONENT_ID } from '@/settings/serverless-functions/constants/SettingsServerlessFunctionTabListComponentId';
 import { SettingsServerlessFunctionHotkeyScope } from '@/settings/serverless-functions/types/SettingsServerlessFunctionHotKeyScope';
-import { getSettingsPagePath } from '@/settings/utils/getSettingsPagePath';
 import { SettingsPath } from '@/types/SettingsPath';
 import { TabList } from '@/ui/layout/tab/components/TabList';
-import { useTabList } from '@/ui/layout/tab/hooks/useTabList';
+import { activeTabIdComponentState } from '@/ui/layout/tab/states/activeTabIdComponentState';
 import { useScopedHotkeys } from '@/ui/utilities/hotkey/hooks/useScopedHotkeys';
+import { useRecoilComponentValueV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValueV2';
 import styled from '@emotion/styled';
-import { useNavigate } from 'react-router-dom';
-import { useRecoilValue } from 'recoil';
 import { Key } from 'ts-key-enum';
 import {
   Button,
@@ -23,6 +21,7 @@ import {
   Section,
 } from 'twenty-ui';
 import { useHotkeyScopeOnMount } from '~/hooks/useHotkeyScopeOnMount';
+import { useNavigateSettings } from '~/hooks/useNavigateSettings';
 
 const StyledTabList = styled(TabList)`
   border-bottom: none;
@@ -47,10 +46,10 @@ export const SettingsServerlessFunctionCodeEditorTab = ({
   onChange: (filePath: string, value: string) => void;
   setIsCodeValid: (isCodeValid: boolean) => void;
 }) => {
-  const { activeTabIdState } = useTabList(
+  const activeTabId = useRecoilComponentValueV2(
+    activeTabIdComponentState,
     SETTINGS_SERVERLESS_FUNCTION_TAB_LIST_COMPONENT_ID,
   );
-  const activeTabId = useRecoilValue(activeTabIdState);
   const TestButton = (
     <Button
       title="Test"
@@ -84,16 +83,16 @@ export const SettingsServerlessFunctionCodeEditorTab = ({
 
   const HeaderTabList = (
     <StyledTabList
-      tabListId={SETTINGS_SERVERLESS_FUNCTION_TAB_LIST_COMPONENT_ID}
       tabs={files
         .filter((file) => file.path !== '.env')
         .map((file) => {
           return { id: file.path, title: file.path.split('/').at(-1) || '' };
         })}
+      componentInstanceId={SETTINGS_SERVERLESS_FUNCTION_TAB_LIST_COMPONENT_ID}
     />
   );
 
-  const navigate = useNavigate();
+  const navigate = useNavigateSettings();
   useHotkeyScopeOnMount(
     SettingsServerlessFunctionHotkeyScope.ServerlessFunctionEditorTab,
   );
@@ -101,7 +100,7 @@ export const SettingsServerlessFunctionCodeEditorTab = ({
   useScopedHotkeys(
     [Key.Escape],
     () => {
-      navigate(getSettingsPagePath(SettingsPath.ServerlessFunctions));
+      navigate(SettingsPath.ServerlessFunctions);
     },
     SettingsServerlessFunctionHotkeyScope.ServerlessFunctionEditorTab,
   );

@@ -1,4 +1,7 @@
+import { SelectHotkeyScope } from '@/ui/input/types/SelectHotkeyScope';
+import { Dropdown } from '@/ui/layout/dropdown/components/Dropdown';
 import { useTheme } from '@emotion/react';
+import { Placement } from '@floating-ui/react';
 import { FunctionComponent, MouseEvent, ReactElement, ReactNode } from 'react';
 import {
   IconChevronRight,
@@ -6,16 +9,11 @@ import {
   IconDotsVertical,
   LightIconButton,
   LightIconButtonProps,
-} from 'twenty-ui';
-
-import { SelectHotkeyScope } from '@/ui/input/types/SelectHotkeyScope';
-import { Dropdown } from '@/ui/layout/dropdown/components/Dropdown';
-import { MenuItemLeftContent } from '../internals/components/MenuItemLeftContent';
-import {
+  MenuItemAccent,
+  MenuItemLeftContent,
   StyledHoverableMenuItemBase,
   StyledMenuItemLeftContent,
-} from '../internals/components/StyledMenuItemBase';
-import { MenuItemAccent } from '../types/MenuItemAccent';
+} from 'twenty-ui';
 
 export type MenuItemIconButton = {
   Wrapper?: FunctionComponent<{ iconButton: ReactElement }>;
@@ -39,6 +37,7 @@ export type MenuItemWithOptionDropdownProps = {
   testId?: string;
   text: ReactNode;
   hasSubMenu?: boolean;
+  dropdownPlacement?: Placement;
 };
 
 // TODO: refactor this
@@ -56,6 +55,7 @@ export const MenuItemWithOptionDropdown = ({
   testId,
   text,
   hasSubMenu = false,
+  dropdownPlacement = 'bottom-end',
 }: MenuItemWithOptionDropdownProps) => {
   const theme = useTheme();
 
@@ -86,12 +86,13 @@ export const MenuItemWithOptionDropdown = ({
             <LightIconButton
               Icon={RightIcon ?? IconDotsVertical}
               size="small"
+              accent="tertiary"
             />
           }
+          dropdownPlacement={dropdownPlacement}
           dropdownComponents={dropdownContent}
           dropdownId={dropdownId}
           dropdownHotkeyScope={{ scope: SelectHotkeyScope.Select }}
-          disableBlur
         />
       </div>
       {hasSubMenu && (

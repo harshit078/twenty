@@ -1,7 +1,20 @@
+import { isGoogleCalendarEnabledState } from '@/client-config/states/isGoogleCalendarEnabledState';
+import { isGoogleMessagingEnabledState } from '@/client-config/states/isGoogleMessagingEnabledState';
+import { isMicrosoftCalendarEnabledState } from '@/client-config/states/isMicrosoftCalendarEnabledState';
+import { isMicrosoftMessagingEnabledState } from '@/client-config/states/isMicrosoftMessagingEnabledState';
+import { useTriggerApisOAuth } from '@/settings/accounts/hooks/useTriggerApiOAuth';
 import styled from '@emotion/styled';
-import { Button, Card, CardContent, CardHeader, IconGoogle } from 'twenty-ui';
-
-import { useTriggerGoogleApisOAuth } from '@/settings/accounts/hooks/useTriggerGoogleApisOAuth';
+import { useLingui } from '@lingui/react/macro';
+import { useRecoilValue } from 'recoil';
+import { ConnectedAccountProvider } from 'twenty-shared';
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  IconGoogle,
+  IconMicrosoft,
+} from 'twenty-ui';
 
 const StyledHeader = styled(CardHeader)`
   align-items: center;
@@ -12,6 +25,7 @@ const StyledHeader = styled(CardHeader)`
 const StyledBody = styled(CardContent)`
   display: flex;
   justify-content: center;
+  gap: ${({ theme }) => theme.spacing(2)};
 `;
 
 type SettingsAccountsListEmptyStateCardProps = {
@@ -21,22 +35,44 @@ type SettingsAccountsListEmptyStateCardProps = {
 export const SettingsAccountsListEmptyStateCard = ({
   label,
 }: SettingsAccountsListEmptyStateCardProps) => {
-  const { triggerGoogleApisOAuth } = useTriggerGoogleApisOAuth();
+  const { triggerApisOAuth } = useTriggerApisOAuth();
 
-  const handleOnClick = async () => {
-    await triggerGoogleApisOAuth();
-  };
+  const { t } = useLingui();
+
+  const isGoogleMessagingEnabled = useRecoilValue(
+    isGoogleMessagingEnabledState,
+  );
+  const isMicrosoftMessagingEnabled = useRecoilValue(
+    isMicrosoftMessagingEnabledState,
+  );
+
+  const isGoogleCalendarEnabled = useRecoilValue(isGoogleCalendarEnabledState);
+
+  const isMicrosoftCalendarEnabled = useRecoilValue(
+    isMicrosoftCalendarEnabledState,
+  );
 
   return (
     <Card>
-      <StyledHeader>{label || 'No connected account'}</StyledHeader>
+      <StyledHeader>{label || t`No connected account`}</StyledHeader>
       <StyledBody>
-        <Button
-          Icon={IconGoogle}
-          title="Connect with Google"
-          variant="secondary"
-          onClick={handleOnClick}
-        />
+        {(isGoogleMessagingEnabled || isGoogleCalendarEnabled) && (
+          <Button
+            Icon={IconGoogle}
+            title={t`Connect with Google`}
+            variant="secondary"
+            onClick={() => triggerApisOAuth(ConnectedAccountProvider.GOOGLE)}
+          />
+        )}
+
+        {(isMicrosoftMessagingEnabled || isMicrosoftCalendarEnabled) && (
+          <Button
+            Icon={IconMicrosoft}
+            title={t`Connect with Microsoft`}
+            variant="secondary"
+            onClick={() => triggerApisOAuth(ConnectedAccountProvider.MICROSOFT)}
+          />
+        )}
       </StyledBody>
     </Card>
   );

@@ -15,13 +15,15 @@ import {
   IsDateString,
   IsEnum,
   IsNotEmpty,
+  IsNumber,
   IsString,
   IsUUID,
 } from 'class-validator';
+import GraphQLJSON from 'graphql-type-json';
 
 import { UUIDScalarType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/scalars';
-import { FunctionParameter } from 'src/engine/metadata-modules/serverless-function/dtos/function-parameter.dto';
 import { ServerlessFunctionSyncStatus } from 'src/engine/metadata-modules/serverless-function/serverless-function.entity';
+import { InputSchema } from 'src/modules/workflow/workflow-builder/workflow-schema/types/input-schema.type';
 
 registerEnumType(ServerlessFunctionSyncStatus, {
   name: 'ServerlessFunctionSyncStatus',
@@ -57,6 +59,10 @@ export class ServerlessFunctionDTO {
   @Field()
   runtime: string;
 
+  @IsNumber()
+  @Field()
+  timeoutSeconds: number;
+
   @IsString()
   @Field({ nullable: true })
   latestVersion: string;
@@ -65,9 +71,8 @@ export class ServerlessFunctionDTO {
   @Field(() => [String], { nullable: false })
   publishedVersions: string[];
 
-  @IsArray()
-  @Field(() => [FunctionParameter], { nullable: true })
-  latestVersionInputSchema: FunctionParameter[] | null;
+  @Field(() => GraphQLJSON, { nullable: true })
+  latestVersionInputSchema: InputSchema;
 
   @IsEnum(ServerlessFunctionSyncStatus)
   @IsNotEmpty()

@@ -1,25 +1,28 @@
+import { FieldContext } from '@/object-record/record-field/contexts/FieldContext';
+import { recordFieldInputIsFieldInErrorComponentState } from '@/object-record/record-field/states/recordFieldInputIsFieldInErrorComponentState';
+import { recordFieldInputLayoutDirectionComponentState } from '@/object-record/record-field/states/recordFieldInputLayoutDirectionComponentState';
+import { recordFieldInputLayoutDirectionLoadingComponentState } from '@/object-record/record-field/states/recordFieldInputLayoutDirectionLoadingComponentState';
+import { getRecordFieldInputId } from '@/object-record/utils/getRecordFieldInputId';
+import { OverlayContainer } from '@/ui/layout/overlay/components/OverlayContainer';
+import { useRecoilComponentValueV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValueV2';
+import { useSetRecoilComponentStateV2 } from '@/ui/utilities/state/component-state/hooks/useSetRecoilComponentStateV2';
 import styled from '@emotion/styled';
-import { autoUpdate, flip, offset, useFloating } from '@floating-ui/react';
-import { ReactElement } from 'react';
+import {
+  MiddlewareState,
+  autoUpdate,
+  flip,
+  offset,
+  useFloating,
+} from '@floating-ui/react';
+import { ReactElement, useContext } from 'react';
 
 const StyledEditableCellEditModeContainer = styled.div<RecordTableCellEditModeProps>`
-  position: absolute;
   align-items: center;
   display: flex;
-  min-width: 200px;
-  width: calc(100% + 2px);
-  z-index: 1;
   height: 100%;
-`;
-
-const StyledTableCellInput = styled.div`
-  align-items: center;
-  display: flex;
-
-  min-height: 32px;
-  min-width: 200px;
-
-  z-index: 10;
+  position: absolute;
+  width: calc(100% + 2px);
+  z-index: 6;
 `;
 
 export type RecordTableCellEditModeProps = {
@@ -32,15 +35,49 @@ export type RecordTableCellEditModeProps = {
 export const RecordTableCellEditMode = ({
   children,
 }: RecordTableCellEditModeProps) => {
+  const { recordId, fieldDefinition } = useContext(FieldContext);
+
+  const isFieldInError = useRecoilComponentValueV2(
+    recordFieldInputIsFieldInErrorComponentState,
+  );
+
+  const instanceId = getRecordFieldInputId(
+    recordId,
+    fieldDefinition?.metadata?.fieldName,
+  );
+
+  const setFieldInputLayoutDirection = useSetRecoilComponentStateV2(
+    recordFieldInputLayoutDirectionComponentState,
+    instanceId,
+  );
+
+  const setFieldInputLayoutDirectionLoading = useSetRecoilComponentStateV2(
+    recordFieldInputLayoutDirectionLoadingComponentState,
+    instanceId,
+  );
+
+  const setFieldInputLayoutDirectionMiddleware = {
+    name: 'middleware',
+    fn: async (state: MiddlewareState) => {
+      setFieldInputLayoutDirection(
+        state.placement.startsWith('bottom') ? 'downward' : 'upward',
+      );
+      setFieldInputLayoutDirectionLoading(false);
+      return {};
+    },
+  };
+
   const { refs, floatingStyles } = useFloating({
-    placement: 'top-start',
+    placement: 'bottom-start',
     middleware: [
       flip(),
       offset({
-        mainAxis: -32,
-        crossAxis: 0,
+        mainAxis: -33,
+        crossAxis: -3,
       }),
+      setFieldInputLayoutDirectionMiddleware,
     ],
+
     whileElementsMounted: autoUpdate,
   });
 
@@ -49,9 +86,14 @@ export const RecordTableCellEditMode = ({
       ref={refs.setReference}
       data-testid="editable-cell-edit-mode-container"
     >
-      <StyledTableCellInput ref={refs.setFloating} style={floatingStyles}>
+      <OverlayContainer
+        ref={refs.setFloating}
+        style={floatingStyles}
+        borderRadius="sm"
+        hasDangerBorder={isFieldInError}
+      >
         {children}
-      </StyledTableCellInput>
+      </OverlayContainer>
     </StyledEditableCellEditModeContainer>
   );
 };

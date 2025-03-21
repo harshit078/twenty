@@ -6,8 +6,9 @@ import { Key } from 'ts-key-enum';
 import { z } from 'zod';
 
 import { TextInput } from '@/ui/input/components/TextInput';
+import { useLingui } from '@lingui/react/macro';
+import { isValidHostname } from 'twenty-shared';
 import { Button } from 'twenty-ui';
-import { isDomain } from '~/utils/is-domain';
 
 const StyledContainer = styled.div`
   display: flex;
@@ -24,28 +25,6 @@ type SettingsAccountsBlocklistInputProps = {
   blockedEmailOrDomainList: string[];
 };
 
-const validationSchema = (blockedEmailOrDomainList: string[]) =>
-  z
-    .object({
-      emailOrDomain: z
-        .string()
-        .trim()
-        .email('Invalid email or domain')
-        .or(
-          z
-            .string()
-            .refine(
-              (value) => value.startsWith('@') && isDomain(value.slice(1)),
-              'Invalid email or domain',
-            ),
-        )
-        .refine(
-          (value) => !blockedEmailOrDomainList.includes(value),
-          'Email or domain is already in blocklist',
-        ),
-    })
-    .required();
-
 type FormInput = {
   emailOrDomain: string;
 };
@@ -54,6 +33,33 @@ export const SettingsAccountsBlocklistInput = ({
   updateBlockedEmailList,
   blockedEmailOrDomainList,
 }: SettingsAccountsBlocklistInputProps) => {
+  const { t } = useLingui();
+
+  const validationSchema = (blockedEmailOrDomainList: string[]) =>
+    z
+      .object({
+        emailOrDomain: z
+          .string()
+          .trim()
+          .email(t`Invalid email or domain`)
+          .or(
+            z.string().refine(
+              (value) =>
+                value.startsWith('@') &&
+                isValidHostname(value.slice(1), {
+                  allowIp: false,
+                  allowLocalhost: false,
+                }),
+              t`Invalid email or domain`,
+            ),
+          )
+          .refine(
+            (value) => !blockedEmailOrDomainList.includes(value),
+            t`Email or domain is already in blocklist`,
+          ),
+      })
+      .required();
+
   const { reset, handleSubmit, control, formState } = useForm<FormInput>({
     mode: 'onSubmit',
     resolver: zodResolver(validationSchema(blockedEmailOrDomainList)),
@@ -99,7 +105,7 @@ export const SettingsAccountsBlocklistInput = ({
             )}
           />
         </StyledLinkContainer>
-        <Button title="Add to blocklist" type="submit" />
+        <Button title={t`Add to blocklist`} type="submit" />
       </StyledContainer>
     </form>
   );

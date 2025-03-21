@@ -1,45 +1,52 @@
-import { useCallback } from 'react';
-
-import { recordGroupDefinitionsComponentState } from '@/object-record/record-group/states/recordGroupDefinitionsComponentState';
+import { recordGroupDefinitionFamilyState } from '@/object-record/record-group/states/recordGroupDefinitionFamilyState';
 import { RecordGroupDefinition } from '@/object-record/record-group/types/RecordGroupDefinition';
-import { useRecoilComponentStateV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentStateV2';
+import { recordIndexRecordGroupHideComponentFamilyState } from '@/object-record/record-index/states/recordIndexRecordGroupHideComponentFamilyState';
+import { useRecoilComponentCallbackStateV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentCallbackStateV2';
 import { useSaveCurrentViewGroups } from '@/views/hooks/useSaveCurrentViewGroups';
-import { mapRecordGroupDefinitionsToViewGroups } from '@/views/utils/mapRecordGroupDefinitionsToViewGroups';
+import { ViewType } from '@/views/types/ViewType';
+import { recordGroupDefinitionToViewGroup } from '@/views/utils/recordGroupDefinitionToViewGroup';
+import { useRecoilCallback } from 'recoil';
 
 type UseRecordGroupVisibilityParams = {
-  viewBarId: string;
+  viewType: ViewType;
 };
 
 export const useRecordGroupVisibility = ({
-  viewBarId,
+  viewType,
 }: UseRecordGroupVisibilityParams) => {
-  const [recordGroupDefinitions, setRecordGroupDefinitions] =
-    useRecoilComponentStateV2(recordGroupDefinitionsComponentState);
+  const objectOptionsDropdownRecordGroupHideFamilyState =
+    useRecoilComponentCallbackStateV2(
+      recordIndexRecordGroupHideComponentFamilyState,
+    );
 
-  const { saveViewGroups } = useSaveCurrentViewGroups(viewBarId);
+  const { saveViewGroup } = useSaveCurrentViewGroups();
 
-  const handleVisibilityChange = useCallback(
-    async (updatedRecordGroupDefinition: RecordGroupDefinition) => {
-      const updatedRecordGroupDefinitions = recordGroupDefinitions.map(
-        (groupDefinition) =>
-          groupDefinition.id === updatedRecordGroupDefinition.id
-            ? {
-                ...groupDefinition,
-                isVisible: !groupDefinition.isVisible,
-              }
-            : groupDefinition,
-      );
+  const handleVisibilityChange = useRecoilCallback(
+    ({ set }) =>
+      async (updatedRecordGroup: RecordGroupDefinition) => {
+        set(
+          recordGroupDefinitionFamilyState(updatedRecordGroup.id),
+          updatedRecordGroup,
+        );
 
-      setRecordGroupDefinitions(updatedRecordGroupDefinitions);
+        saveViewGroup(recordGroupDefinitionToViewGroup(updatedRecordGroup));
+      },
+    [saveViewGroup],
+  );
 
-      saveViewGroups(
-        mapRecordGroupDefinitionsToViewGroups(updatedRecordGroupDefinitions),
-      );
-    },
-    [recordGroupDefinitions, setRecordGroupDefinitions, saveViewGroups],
+  const handleHideEmptyRecordGroupChange = useRecoilCallback(
+    ({ set }) =>
+      async () => {
+        set(
+          objectOptionsDropdownRecordGroupHideFamilyState(viewType),
+          (currentHideState) => !currentHideState,
+        );
+      },
+    [viewType, objectOptionsDropdownRecordGroupHideFamilyState],
   );
 
   return {
     handleVisibilityChange,
+    handleHideEmptyRecordGroupChange,
   };
 };

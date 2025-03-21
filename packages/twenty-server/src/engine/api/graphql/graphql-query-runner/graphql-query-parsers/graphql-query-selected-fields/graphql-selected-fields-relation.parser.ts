@@ -1,43 +1,58 @@
+import { FeatureFlagMap } from 'src/engine/core-modules/feature-flag/interfaces/feature-flag-map.interface';
 import { FieldMetadataInterface } from 'src/engine/metadata-modules/field-metadata/interfaces/field-metadata.interface';
 
-import { GraphqlQuerySelectedFieldsParser } from 'src/engine/api/graphql/graphql-query-runner/graphql-query-parsers/graphql-query-selected-fields/graphql-selected-fields.parser';
+import {
+  GraphqlQuerySelectedFieldsParser,
+  GraphqlQuerySelectedFieldsResult,
+} from 'src/engine/api/graphql/graphql-query-runner/graphql-query-parsers/graphql-query-selected-fields/graphql-selected-fields.parser';
 import { getRelationObjectMetadata } from 'src/engine/api/graphql/graphql-query-runner/utils/get-relation-object-metadata.util';
-import { ObjectMetadataMap } from 'src/engine/metadata-modules/utils/generate-object-metadata-map.util';
+import { getTargetObjectMetadataOrThrow } from 'src/engine/api/graphql/graphql-query-runner/utils/get-target-object-metadata.util';
+import { FeatureFlagKey } from 'src/engine/core-modules/feature-flag/enums/feature-flag-key.enum';
+import { ObjectMetadataMaps } from 'src/engine/metadata-modules/types/object-metadata-maps';
 
 export class GraphqlQuerySelectedFieldsRelationParser {
-  private objectMetadataMap: ObjectMetadataMap;
+  private objectMetadataMaps: ObjectMetadataMaps;
+  private featureFlagsMap: FeatureFlagMap;
 
-  constructor(objectMetadataMap: ObjectMetadataMap) {
-    this.objectMetadataMap = objectMetadataMap;
+  constructor(
+    objectMetadataMaps: ObjectMetadataMaps,
+    featureFlagsMap: FeatureFlagMap,
+  ) {
+    this.objectMetadataMaps = objectMetadataMaps;
+    this.featureFlagsMap = featureFlagsMap;
   }
 
   parseRelationField(
     fieldMetadata: FieldMetadataInterface,
     fieldKey: string,
     fieldValue: any,
-    result: { select: Record<string, any>; relations: Record<string, any> },
+    accumulator: GraphqlQuerySelectedFieldsResult,
   ): void {
     if (!fieldValue || typeof fieldValue !== 'object') {
       return;
     }
 
-    result.relations[fieldKey] = true;
+    accumulator.relations[fieldKey] = true;
 
-    const referencedObjectMetadata = getRelationObjectMetadata(
-      fieldMetadata,
-      this.objectMetadataMap,
-    );
+    const isNewRelationEnabled =
+      this.featureFlagsMap[FeatureFlagKey.IsNewRelationEnabled];
 
-    const relationFields = referencedObjectMetadata.fields;
+    const targetObjectMetadata = isNewRelationEnabled
+      ? getTargetObjectMetadataOrThrow(fieldMetadata, this.objectMetadataMaps)
+      : getRelationObjectMetadata(fieldMetadata, this.objectMetadataMaps);
+
+    const targetFields = targetObjectMetadata.fieldsByName;
     const fieldParser = new GraphqlQuerySelectedFieldsParser(
-      this.objectMetadataMap,
+      this.objectMetadataMaps,
+      this.featureFlagsMap,
     );
-    const subResult = fieldParser.parse(fieldValue, relationFields);
+    const relationAccumulator = fieldParser.parse(fieldValue, targetFields);
 
-    result.select[fieldKey] = {
+    accumulator.select[fieldKey] = {
       id: true,
-      ...subResult.select,
+      ...relationAccumulator.select,
     };
-    result.relations[fieldKey] = subResult.relations;
+    accumulator.relations[fieldKey] = relationAccumulator.relations;
+    accumulator.aggregate[fieldKey] = relationAccumulator.aggregate;
   }
 }

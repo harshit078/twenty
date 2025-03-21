@@ -1,5 +1,5 @@
 import { getOperationName } from '@apollo/client/utilities';
-import { graphql, http, HttpResponse } from 'msw';
+import { graphql, GraphQLQuery, http, HttpResponse } from 'msw';
 
 import { TRACK } from '@/analytics/graphql/queries/track';
 import { GET_CLIENT_CONFIG } from '@/client-config/graphql/queries/getClientConfig';
@@ -11,19 +11,30 @@ import {
   getCompanyDuplicateMock,
 } from '~/testing/mock-data/companies';
 import { mockedClientConfig } from '~/testing/mock-data/config';
+import { mockedFavoritesData } from '~/testing/mock-data/favorite';
+import { mockedFavoriteFoldersData } from '~/testing/mock-data/favorite-folders';
 import { mockedNotes } from '~/testing/mock-data/notes';
-import { getPeopleMock } from '~/testing/mock-data/people';
+import { getPeopleRecordConnectionMock } from '~/testing/mock-data/people';
 import { mockedRemoteTables } from '~/testing/mock-data/remote-tables';
 import { mockedUserData } from '~/testing/mock-data/users';
 import { mockedViewsData } from '~/testing/mock-data/views';
 import { mockWorkspaceMembers } from '~/testing/mock-data/workspace-members';
 
+import { GET_PUBLIC_WORKSPACE_DATA_BY_DOMAIN } from '@/auth/graphql/queries/getPublicWorkspaceDataByDomain';
+import { GET_ROLES } from '@/settings/roles/graphql/queries/getRolesQuery';
 import { mockedStandardObjectMetadataQueryResult } from '~/testing/mock-data/generated/mock-metadata-query-result';
+import { getRolesMock } from '~/testing/mock-data/roles';
 import { mockedTasks } from '~/testing/mock-data/tasks';
+import {
+  getWorkflowMock,
+  getWorkflowVersionsMock,
+  workflowQueryResult,
+} from '~/testing/mock-data/workflow';
+import { oneSucceededWorkflowRunQueryResult } from '~/testing/mock-data/workflow-run';
 import { mockedRemoteServers } from './mock-data/remote-servers';
 import { mockedViewFieldsData } from './mock-data/view-fields';
 
-const peopleMock = getPeopleMock();
+const peopleMock = getPeopleRecordConnectionMock();
 const companiesMock = getCompaniesMock();
 const duplicateCompanyMock = getCompanyDuplicateMock();
 
@@ -33,6 +44,39 @@ export const metadataGraphql = graphql.link(
 
 export const graphqlMocks = {
   handlers: [
+    graphql.query('IntrospectionQuery', () => {
+      return HttpResponse.json({
+        data: {
+          __schema: {
+            queryType: { name: 'Query' },
+            types: [
+              {
+                kind: 'OBJECT',
+                name: 'Query',
+                fields: [
+                  {
+                    name: 'name',
+                    type: { kind: 'SCALAR', name: 'String' },
+                    args: [],
+                  },
+                ],
+                interfaces: [],
+                args: [],
+              },
+              {
+                kind: 'SCALAR',
+                name: 'String',
+                fields: [],
+                interfaces: [],
+                args: [],
+              },
+            ],
+            directives: [],
+          },
+        },
+      });
+    }),
+
     graphql.query(getOperationName(GET_CURRENT_USER) ?? '', () => {
       return HttpResponse.json({
         data: {
@@ -40,6 +84,31 @@ export const graphqlMocks = {
         },
       });
     }),
+    graphql.query(
+      getOperationName(GET_PUBLIC_WORKSPACE_DATA_BY_DOMAIN) ?? '',
+      () => {
+        return HttpResponse.json({
+          data: {
+            getPublicWorkspaceDataByDomain: {
+              id: 'id',
+              logo: 'logo',
+              displayName: 'displayName',
+              workspaceUrls: {
+                customUrl: undefined,
+                subdomainUrl: 'https://twenty.com',
+              },
+              authProviders: {
+                google: true,
+                microsoft: false,
+                password: true,
+                magicLink: false,
+                sso: [],
+              },
+            },
+          },
+        });
+      },
+    ),
     graphql.mutation(getOperationName(TRACK) ?? '', () => {
       return HttpResponse.json({
         data: {
@@ -103,6 +172,89 @@ export const graphqlMocks = {
         data: {
           searchOpportunities: {
             edges: [],
+            pageInfo: {
+              hasNextPage: false,
+              hasPreviousPage: false,
+              startCursor: null,
+              endCursor: null,
+            },
+          },
+        },
+      });
+    }),
+    graphql.query('GlobalSearch', () => {
+      return HttpResponse.json({
+        data: {
+          globalSearch: [
+            {
+              __typename: 'GlobalSearchRecordDTO',
+              recordId: '20202020-2d40-4e49-8df4-9c6a049191de',
+              objectSingularName: 'person',
+              label: 'Louis Duss',
+              imageUrl: '',
+              tsRankCD: 0.2,
+              tsRank: 0.12158542,
+            },
+            {
+              __typename: 'GlobalSearchRecordDTO',
+              recordId: '20202020-3ec3-4fe3-8997-b76aa0bfa408',
+              objectSingularName: 'company',
+              label: 'Linkedin',
+              imageUrl: 'https://twenty-icons.com/linkedin.com',
+              tsRankCD: 0.2,
+              tsRank: 0.12158542,
+            },
+            {
+              __typename: 'GlobalSearchRecordDTO',
+              recordId: '20202020-3f74-492d-a101-2a70f50a1645',
+              objectSingularName: 'company',
+              label: 'Libeo',
+              imageUrl: 'https://twenty-icons.com/libeo.io',
+              tsRankCD: 0.2,
+              tsRank: 0.12158542,
+            },
+            {
+              __typename: 'GlobalSearchRecordDTO',
+              recordId: '20202020-ac73-4797-824e-87a1f5aea9e0',
+              objectSingularName: 'person',
+              label: 'Sylvie Palmer',
+              imageUrl: '',
+              tsRankCD: 0.1,
+              tsRank: 0.06079271,
+            },
+          ],
+        },
+      });
+    }),
+    graphql.query('CombinedSearchRecords', () => {
+      return HttpResponse.json({
+        data: {
+          searchOpportunities: {
+            edges: [],
+            pageInfo: {
+              hasNextPage: false,
+              hasPreviousPage: false,
+              startCursor: null,
+              endCursor: null,
+            },
+          },
+          searchCompanies: {
+            edges: companiesMock.slice(0, 3).map((company) => ({
+              node: company,
+              cursor: null,
+            })),
+            pageInfo: {
+              hasNextPage: false,
+              hasPreviousPage: false,
+              startCursor: null,
+              endCursor: null,
+            },
+          },
+          searchPeople: {
+            edges: peopleMock.slice(0, 3).map((person) => ({
+              node: person,
+              cursor: null,
+            })),
             pageInfo: {
               hasNextPage: false,
               hasPreviousPage: false,
@@ -212,8 +364,20 @@ export const graphqlMocks = {
       return HttpResponse.json({
         data: {
           favorites: {
+            edges: mockedFavoritesData.map((favorite) => ({
+              node: favorite,
+              cursor: null,
+            })),
+            totalCount: mockedFavoritesData.length,
+            pageInfo: {
+              hasNextPage: false,
+              hasPreviousPage: false,
+              startCursor: null,
+              endCursor: null,
+            },
+          },
+          favoriteFolders: {
             edges: [],
-            totalCount: 0,
             pageInfo: {
               hasNextPage: false,
               hasPreviousPage: false,
@@ -445,11 +609,32 @@ export const graphqlMocks = {
         },
       });
     }),
+    graphql.query('FindManyFavoriteFolders', () => {
+      return HttpResponse.json({
+        data: {
+          favoriteFolders: {
+            edges: mockedFavoriteFoldersData.map((favoriteFolder) => ({
+              node: favoriteFolder,
+              cursor: null,
+            })),
+            pageInfo: {
+              hasNextPage: false,
+              hasPreviousPage: false,
+              startCursor: null,
+              endCursor: null,
+            },
+          },
+        },
+      });
+    }),
     graphql.query('FindManyFavorites', () => {
       return HttpResponse.json({
         data: {
           favorites: {
-            edges: [],
+            edges: mockedFavoritesData.map((favorite) => ({
+              node: favorite,
+              cursor: null,
+            })),
             pageInfo: {
               hasNextPage: false,
               hasPreviousPage: false,
@@ -541,130 +726,44 @@ export const graphqlMocks = {
         },
       });
     }),
+    graphql.query<GraphQLQuery, { objectRecordId: string }>(
+      'FindOnePerson',
+      ({ variables: { objectRecordId } }) => {
+        return HttpResponse.json({
+          data: {
+            person: peopleMock.find((person) => person.id === objectRecordId),
+          },
+        });
+      },
+    ),
     graphql.query('FindManyWorkflows', () => {
       return HttpResponse.json({
-        data: {
-          workflows: {
-            __typename: 'WorkflowConnection',
-            totalCount: 1,
-            pageInfo: {
-              __typename: 'PageInfo',
-              hasNextPage: false,
-              hasPreviousPage: false,
-              startCursor:
-                'eyJpZCI6IjIwMGMxNTA4LWYxMDItNGJiOS1hZjMyLWVkYTU1MjM5YWU2MSJ9',
-              endCursor:
-                'eyJpZCI6IjIwMGMxNTA4LWYxMDItNGJiOS1hZjMyLWVkYTU1MjM5YWU2MSJ9',
-            },
-            edges: [
-              {
-                __typename: 'WorkflowEdge',
-                cursor:
-                  'eyJpZCI6IjIwMGMxNTA4LWYxMDItNGJiOS1hZjMyLWVkYTU1MjM5YWU2MSJ9',
-                node: {
-                  __typename: 'Workflow',
-                  id: '200c1508-f102-4bb9-af32-eda55239ae61',
-                },
-              },
-            ],
-          },
-        },
+        data: workflowQueryResult,
       });
     }),
     graphql.query('FindOneWorkflow', () => {
       return HttpResponse.json({
         data: {
-          workflow: {
-            __typename: 'Workflow',
-            id: '200c1508-f102-4bb9-af32-eda55239ae61',
-            name: '1231 qqerrt',
-            statuses: null,
-            lastPublishedVersionId: '',
-            deletedAt: null,
-            updatedAt: '2024-09-19T10:10:04.505Z',
-            position: 0,
-            createdAt: '2024-09-19T10:10:04.505Z',
-            favorites: {
-              __typename: 'FavoriteConnection',
-              edges: [],
-            },
-            eventListeners: {
-              __typename: 'WorkflowEventListenerConnection',
-              edges: [],
-            },
-            runs: {
-              __typename: 'WorkflowRunConnection',
-              edges: [],
-            },
-            versions: {
-              __typename: 'WorkflowVersionConnection',
-              edges: [
-                {
-                  __typename: 'WorkflowVersionEdge',
-                  node: {
-                    __typename: 'WorkflowVersion',
-                    updatedAt: '2024-09-19T10:13:12.075Z',
-                    steps: null,
-                    createdAt: '2024-09-19T10:10:04.725Z',
-                    status: 'DRAFT',
-                    name: 'v1',
-                    id: 'f618843a-26be-4a54-a60f-f4ce88a594f0',
-                    trigger: {
-                      type: 'DATABASE_EVENT',
-                      settings: {
-                        eventName: 'note.created',
-                      },
-                    },
-                    deletedAt: null,
-                    workflowId: '200c1508-f102-4bb9-af32-eda55239ae61',
-                  },
-                },
-              ],
-            },
-          },
+          workflow: getWorkflowMock(),
         },
+      });
+    }),
+    graphql.query('FindOneWorkflowRun', () => {
+      return HttpResponse.json({
+        data: oneSucceededWorkflowRunQueryResult,
       });
     }),
     graphql.query('FindManyWorkflowVersions', () => {
       return HttpResponse.json({
         data: {
-          workflowVersions: {
-            __typename: 'WorkflowVersionConnection',
-            totalCount: 1,
-            pageInfo: {
-              __typename: 'PageInfo',
-              hasNextPage: false,
-              hasPreviousPage: false,
-              startCursor:
-                'eyJjcmVhdGVkQXQiOiIyMDI0LTA5LTE5VDEwOjEwOjA0LjcyNVoiLCJpZCI6ImY2MTg4NDNhLTI2YmUtNGE1NC1hNjBmLWY0Y2U4OGE1OTRmMCJ9',
-              endCursor:
-                'eyJjcmVhdGVkQXQiOiIyMDI0LTA5LTE5VDEwOjEwOjA0LjcyNVoiLCJpZCI6ImY2MTg4NDNhLTI2YmUtNGE1NC1hNjBmLWY0Y2U4OGE1OTRmMCJ9',
-            },
-            edges: [
-              {
-                __typename: 'WorkflowVersionEdge',
-                cursor:
-                  'eyJjcmVhdGVkQXQiOiIyMDI0LTA5LTE5VDEwOjEwOjA0LjcyNVoiLCJpZCI6ImY2MTg4NDNhLTI2YmUtNGE1NC1hNjBmLWY0Y2U4OGE1OTRmMCJ9',
-                node: {
-                  __typename: 'WorkflowVersion',
-                  updatedAt: '2024-09-19T10:13:12.075Z',
-                  steps: null,
-                  createdAt: '2024-09-19T10:10:04.725Z',
-                  status: 'DRAFT',
-                  name: 'v1',
-                  id: 'f618843a-26be-4a54-a60f-f4ce88a594f0',
-                  trigger: {
-                    type: 'DATABASE_EVENT',
-                    settings: {
-                      eventName: 'note.created',
-                    },
-                  },
-                  deletedAt: null,
-                  workflowId: '200c1508-f102-4bb9-af32-eda55239ae61',
-                },
-              },
-            ],
-          },
+          workflowVersions: getWorkflowVersionsMock(),
+        },
+      });
+    }),
+    graphql.query(getOperationName(GET_ROLES) ?? '', () => {
+      return HttpResponse.json({
+        data: {
+          getRoles: getRolesMock(),
         },
       });
     }),

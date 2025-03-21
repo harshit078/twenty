@@ -1,36 +1,6 @@
-export const getCompaniesMock = () => {
-  return companiesQueryResult.companies.edges.map((edge) => edge.node);
-};
-
-export const getCompanyDuplicateMock = () => {
-  return {
-    ...companiesQueryResult.companies.edges[0].node,
-    id: '8b40856a-2ec9-4c03-8bc0-c032c89e1824',
-  };
-};
-
-export const getEmptyCompanyMock = () => {
-  return {
-    id: '9231e6ee-4cc2-4c7b-8c55-dff16f4d968a',
-    name: '',
-    domainName: {
-      __typename: 'Links',
-      primaryLinkUrl: '',
-      primaryLinkLabel: '',
-      secondaryLinks: null,
-    },
-    address: '',
-    accountOwner: null,
-    createdAt: null,
-    updatedAt: null,
-    employees: null,
-    idealCustomerProfile: null,
-    linkedinLink: null,
-    xLink: null,
-    _activityCount: null,
-    __typename: 'Company',
-  };
-};
+import { ObjectRecord } from '@/object-record/types/ObjectRecord';
+import { isDefined } from 'twenty-shared';
+import { generatedMockObjectMetadataItems } from '~/testing/mock-data/generatedMockObjectMetadataItems';
 
 export const companiesQueryResult = {
   companies: {
@@ -60,20 +30,32 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkLabel: 'https://linkedin.com',
             primaryLinkUrl: '',
-            secondaryLinks: null,
+            secondaryLinks: [],
           },
-          address: '',
+          address: {
+            __typename: 'Address',
+            addressLine1: '',
+            addressLine2: '',
+            addressCity: '',
+            addressState: '',
+            addressCountry: '',
+            addressPostcode: '',
+            addressLat: null,
+            addressLng: null,
+          },
           position: 1,
           idealCustomerProfile: true,
           linkedinLink: {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
           xLink: {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
           annualRecurringRevenue: {
             __typename: 'Currency',
@@ -115,7 +97,7 @@ export const companiesQueryResult = {
               __typename: 'Links',
               primaryLinkUrl: '',
               primaryLinkLabel: '',
-              secondaryLinks: null,
+              secondaryLinks: [],
             },
             name: {
               __typename: 'FullName',
@@ -163,9 +145,18 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkUrl: 'https://facebook.com',
             primaryLinkLabel: '',
-            secondaryLinks: null,
+            secondaryLinks: [],
           },
-          address: '',
+          address: {
+            addressStreet1: '',
+            addressStreet2: '',
+            addressCity: '',
+            addressState: '',
+            addressCountry: '',
+            addressPostcode: '',
+            addressLat: null,
+            addressLng: null,
+          },
           previousEmployees: null,
           annualRecurringRevenue: {
             __typename: 'Currency',
@@ -177,11 +168,13 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
           linkedinLink: {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
         },
       },
@@ -202,9 +195,18 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkUrl: 'https://qonto.com',
             primaryLinkLabel: '',
-            secondaryLinks: null,
+            secondaryLinks: [],
           },
-          address: '',
+          address: {
+            addressStreet1: '',
+            addressStreet2: '',
+            addressCity: '',
+            addressState: '',
+            addressCountry: '',
+            addressPostcode: '',
+            addressLat: null,
+            addressLng: null,
+          },
           previousEmployees: null,
           annualRecurringRevenue: {
             __typename: 'Currency',
@@ -216,11 +218,13 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
           linkedinLink: {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
         },
       },
@@ -241,9 +245,18 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkUrl: 'https://microsoft.com',
             primaryLinkLabel: '',
-            secondaryLinks: null,
+            secondaryLinks: [],
           },
-          address: '',
+          address: {
+            addressStreet1: '',
+            addressStreet2: '',
+            addressCity: '',
+            addressState: '',
+            addressCountry: '',
+            addressPostcode: '',
+            addressLat: null,
+            addressLng: null,
+          },
           previousEmployees: null,
           annualRecurringRevenue: {
             __typename: 'Currency',
@@ -255,11 +268,13 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
           linkedinLink: {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
         },
       },
@@ -280,9 +295,18 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkUrl: 'https://airbnb.com',
             primaryLinkLabel: '',
-            secondaryLinks: null,
+            secondaryLinks: [],
           },
-          address: '',
+          address: {
+            addressStreet1: '',
+            addressStreet2: '',
+            addressCity: '',
+            addressState: '',
+            addressCountry: '',
+            addressPostcode: '',
+            addressLat: null,
+            addressLng: null,
+          },
           previousEmployees: null,
           annualRecurringRevenue: {
             __typename: 'Currency',
@@ -294,11 +318,13 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
           linkedinLink: {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
         },
       },
@@ -319,9 +345,18 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkUrl: 'https://google.com',
             primaryLinkLabel: '',
-            secondaryLinks: null,
+            secondaryLinks: [],
           },
-          address: '',
+          address: {
+            addressStreet1: '',
+            addressStreet2: '',
+            addressCity: '',
+            addressState: '',
+            addressCountry: '',
+            addressPostcode: '',
+            addressLat: null,
+            addressLng: null,
+          },
           previousEmployees: null,
           annualRecurringRevenue: {
             __typename: 'Currency',
@@ -333,11 +368,13 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
           linkedinLink: {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
         },
       },
@@ -358,9 +395,18 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkUrl: 'https://netflix.com',
             primaryLinkLabel: '',
-            secondaryLinks: null,
+            secondaryLinks: [],
           },
-          address: '',
+          address: {
+            addressStreet1: '',
+            addressStreet2: '',
+            addressCity: '',
+            addressState: '',
+            addressCountry: '',
+            addressPostcode: '',
+            addressLat: null,
+            addressLng: null,
+          },
           previousEmployees: null,
           annualRecurringRevenue: {
             __typename: 'Currency',
@@ -372,11 +418,13 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
           linkedinLink: {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
         },
       },
@@ -397,9 +445,18 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkUrl: 'https://libeo.io',
             primaryLinkLabel: '',
-            secondaryLinks: null,
+            secondaryLinks: [],
           },
-          address: '',
+          address: {
+            addressStreet1: '',
+            addressStreet2: '',
+            addressCity: '',
+            addressState: '',
+            addressCountry: '',
+            addressPostcode: '',
+            addressLat: null,
+            addressLng: null,
+          },
           previousEmployees: null,
           annualRecurringRevenue: {
             __typename: 'Currency',
@@ -411,11 +468,13 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
           linkedinLink: {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
         },
       },
@@ -436,9 +495,18 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkUrl: 'https://claap.com',
             primaryLinkLabel: '',
-            secondaryLinks: null,
+            secondaryLinks: [],
           },
-          address: '',
+          address: {
+            addressStreet1: '',
+            addressStreet2: '',
+            addressCity: '',
+            addressState: '',
+            addressCountry: '',
+            addressPostcode: '',
+            addressLat: null,
+            addressLng: null,
+          },
           previousEmployees: null,
           annualRecurringRevenue: {
             __typename: 'Currency',
@@ -450,11 +518,13 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
           linkedinLink: {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
         },
       },
@@ -475,9 +545,18 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkUrl: 'https://hasura.io',
             primaryLinkLabel: '',
-            secondaryLinks: null,
+            secondaryLinks: [],
           },
-          address: '',
+          address: {
+            addressStreet1: '',
+            addressStreet2: '',
+            addressCity: '',
+            addressState: '',
+            addressCountry: '',
+            addressPostcode: '',
+            addressLat: null,
+            addressLng: null,
+          },
           previousEmployees: null,
           annualRecurringRevenue: {
             __typename: 'Currency',
@@ -489,11 +568,13 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
           linkedinLink: {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
         },
       },
@@ -514,9 +595,18 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkUrl: 'https://wework.com',
             primaryLinkLabel: '',
-            secondaryLinks: null,
+            secondaryLinks: [],
           },
-          address: '',
+          address: {
+            addressStreet1: '',
+            addressStreet2: '',
+            addressCity: '',
+            addressState: '',
+            addressCountry: '',
+            addressPostcode: '',
+            addressLat: null,
+            addressLng: null,
+          },
           previousEmployees: null,
           annualRecurringRevenue: {
             __typename: 'Currency',
@@ -528,11 +618,13 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
           linkedinLink: {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
         },
       },
@@ -553,9 +645,18 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkUrl: 'https://samsung.com',
             primaryLinkLabel: '',
-            secondaryLinks: null,
+            secondaryLinks: [],
           },
-          address: '',
+          address: {
+            addressStreet1: '',
+            addressStreet2: '',
+            addressCity: '',
+            addressState: '',
+            addressCountry: '',
+            addressPostcode: '',
+            addressLat: null,
+            addressLng: null,
+          },
           previousEmployees: null,
           annualRecurringRevenue: {
             __typename: 'Currency',
@@ -567,11 +668,13 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
           linkedinLink: {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
         },
       },
@@ -592,9 +695,18 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkUrl: 'https://algolia.com',
             primaryLinkLabel: '',
-            secondaryLinks: null,
+            secondaryLinks: [],
           },
-          address: '',
+          address: {
+            addressStreet1: '',
+            addressStreet2: '',
+            addressCity: '',
+            addressState: '',
+            addressCountry: '',
+            addressPostcode: '',
+            addressLat: null,
+            addressLng: null,
+          },
           previousEmployees: null,
           annualRecurringRevenue: {
             __typename: 'Currency',
@@ -606,14 +718,88 @@ export const companiesQueryResult = {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
           linkedinLink: {
             __typename: 'Links',
             primaryLinkLabel: '',
             primaryLinkUrl: '',
+            secondaryLinks: [],
           },
         },
       },
     ],
   },
+};
+
+const allMockedCompanyRecords = companiesQueryResult.companies.edges.map(
+  (edge) => edge.node,
+);
+export const getCompaniesMock = () => {
+  return [...allMockedCompanyRecords];
+};
+
+export const getMockCompanyObjectMetadataItem = () => {
+  const companyObjectMetadataItem = generatedMockObjectMetadataItems.find(
+    (item) => item.nameSingular === 'company',
+  );
+
+  if (!companyObjectMetadataItem) {
+    throw new Error('Company object metadata item not found');
+  }
+
+  return companyObjectMetadataItem;
+};
+export const getCompanyDuplicateMock = () => {
+  return {
+    ...companiesQueryResult.companies.edges[0].node,
+    id: '8b40856a-2ec9-4c03-8bc0-c032c89e1824',
+  };
+};
+
+export const getMockCompanyRecord = (
+  overrides?: Partial<ObjectRecord>,
+  index = 0,
+) => {
+  return {
+    ...allMockedCompanyRecords[index],
+    ...overrides,
+  };
+};
+
+export const findMockCompanyRecord = ({
+  id: queriedCompanyId,
+}: Pick<ObjectRecord, 'id'>) => {
+  const company = allMockedCompanyRecords.find(
+    ({ id: currentCompanyId }) => currentCompanyId === queriedCompanyId,
+  );
+
+  if (!isDefined(company)) {
+    throw new Error(`Could not find company with id, ${queriedCompanyId}`);
+  }
+
+  return company;
+};
+
+export const getEmptyCompanyMock = () => {
+  return {
+    id: '9231e6ee-4cc2-4c7b-8c55-dff16f4d968a',
+    name: '',
+    domainName: {
+      __typename: 'Links',
+      primaryLinkUrl: '',
+      primaryLinkLabel: '',
+      secondaryLinks: [],
+    },
+    address: {},
+    accountOwner: null,
+    createdAt: null,
+    updatedAt: null,
+    employees: null,
+    idealCustomerProfile: null,
+    linkedinLink: null,
+    xLink: null,
+    _activityCount: null,
+    __typename: 'Company',
+  };
 };

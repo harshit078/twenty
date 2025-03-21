@@ -1,35 +1,20 @@
-import { styled } from '@linaria/react';
 import { useMemo } from 'react';
-import { LinkType, RoundedLink, SocialLink, THEME_COMMON } from 'twenty-ui';
+import { LinkType, RoundedLink, SocialLink } from 'twenty-ui';
 
 import { FieldLinksValue } from '@/object-record/record-field/types/FieldMetadata';
 import { ExpandableList } from '@/ui/layout/expandable-list/components/ExpandableList';
+import {
+  getAbsoluteUrlOrThrow,
+  getUrlHostnameOrThrow,
+  isDefined,
+} from 'twenty-shared';
 import { checkUrlType } from '~/utils/checkUrlType';
-import { isDefined } from '~/utils/isDefined';
-import { getAbsoluteUrl } from '~/utils/url/getAbsoluteUrl';
-import { getUrlHostName } from '~/utils/url/getUrlHostName';
 
 type LinksDisplayProps = {
   value?: FieldLinksValue;
-  isFocused?: boolean;
 };
 
-const themeSpacing = THEME_COMMON.spacingMultiplicator;
-
-const StyledContainer = styled.div`
-  align-items: center;
-  display: flex;
-  gap: ${themeSpacing * 1}px;
-  justify-content: flex-start;
-
-  max-width: 100%;
-
-  overflow: hidden;
-
-  width: 100%;
-`;
-
-export const LinksDisplay = ({ value, isFocused }: LinksDisplayProps) => {
+export const LinksDisplay = ({ value }: LinksDisplayProps) => {
   const links = useMemo(
     () =>
       [
@@ -43,18 +28,26 @@ export const LinksDisplay = ({ value, isFocused }: LinksDisplayProps) => {
       ]
         .filter(isDefined)
         .map(({ url, label }) => {
-          const absoluteUrl = getAbsoluteUrl(url);
+          let absoluteUrl = '';
+          let hostname = '';
+          try {
+            absoluteUrl = getAbsoluteUrlOrThrow(url);
+            hostname = getUrlHostnameOrThrow(absoluteUrl);
+          } catch {
+            absoluteUrl = '';
+            hostname = '';
+          }
           return {
             url: absoluteUrl,
-            label: label || getUrlHostName(absoluteUrl),
+            label: label || hostname,
             type: checkUrlType(absoluteUrl),
           };
         }),
     [value?.primaryLinkLabel, value?.primaryLinkUrl, value?.secondaryLinks],
   );
 
-  return isFocused ? (
-    <ExpandableList isChipCountDisplayed>
+  return (
+    <ExpandableList>
       {links.map(({ url, label, type }, index) =>
         type === LinkType.LinkedIn || type === LinkType.Twitter ? (
           <SocialLink key={index} href={url} type={type} label={label} />
@@ -63,15 +56,5 @@ export const LinksDisplay = ({ value, isFocused }: LinksDisplayProps) => {
         ),
       )}
     </ExpandableList>
-  ) : (
-    <StyledContainer>
-      {links.map(({ url, label, type }, index) =>
-        type === LinkType.LinkedIn || type === LinkType.Twitter ? (
-          <SocialLink key={index} href={url} type={type} label={label} />
-        ) : (
-          <RoundedLink key={index} href={url} label={label} />
-        ),
-      )}
-    </StyledContainer>
   );
 };

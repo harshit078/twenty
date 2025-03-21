@@ -1,17 +1,16 @@
-import { IconFilterOff } from 'twenty-ui';
+import { IconFilterOff, MenuItem } from 'twenty-ui';
 
-import { useFilterDropdown } from '@/object-record/object-filter-dropdown/hooks/useFilterDropdown';
+import { useEmptyRecordFilter } from '@/object-record/object-filter-dropdown/hooks/useEmptyRecordFilter';
 import { DropdownMenuItemsContainer } from '@/ui/layout/dropdown/components/DropdownMenuItemsContainer';
 import { useDropdown } from '@/ui/layout/dropdown/hooks/useDropdown';
-import { MenuItem } from '@/ui/navigation/menu-item/components/MenuItem';
 
 export const ObjectFilterDropdownRecordRemoveFilterMenuItem = () => {
-  const { emptyFilterButKeepDefinition } = useFilterDropdown();
+  const { emptyRecordFilter } = useEmptyRecordFilter();
 
   const { closeDropdown } = useDropdown();
 
   const handleRemoveFilter = () => {
-    emptyFilterButKeepDefinition();
+    emptyRecordFilter();
     closeDropdown();
   };
 

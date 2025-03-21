@@ -1,3 +1,5 @@
+import { FieldMetadataType, IsExactly } from 'twenty-shared';
+
 import {
   FieldMetadataDefaultActor,
   FieldMetadataDefaultArray,
@@ -16,7 +18,6 @@ import {
   FieldMetadataDefaultValueString,
   FieldMetadataDefaultValueUuidFunction,
 } from 'src/engine/metadata-modules/field-metadata/dtos/default-value.input';
-import { FieldMetadataType } from 'src/engine/metadata-modules/field-metadata/field-metadata.entity';
 
 type ExtractValueType<T> = T extends { value: infer V } ? V : T;
 
@@ -59,17 +60,14 @@ export type FieldMetadataFunctionDefaultValue = ExtractValueType<
   FieldMetadataDefaultValueUuidFunction | FieldMetadataDefaultValueNowFunction
 >;
 
-type DefaultValueByFieldMetadata<T extends FieldMetadataType | 'default'> = [
-  T,
-] extends [keyof FieldMetadataDefaultValueMapping]
-  ? ExtractValueType<FieldMetadataDefaultValueMapping[T]> | null
-  : T extends 'default'
-    ? ExtractValueType<UnionOfValues<FieldMetadataDefaultValueMapping>> | null
-    : never;
-
 export type FieldMetadataDefaultValue<
-  T extends FieldMetadataType | 'default' = 'default',
-> = DefaultValueByFieldMetadata<T>;
+  T extends FieldMetadataType = FieldMetadataType,
+> =
+  IsExactly<T, FieldMetadataType> extends true
+    ? ExtractValueType<UnionOfValues<FieldMetadataDefaultValueMapping>> | null
+    : T extends keyof FieldMetadataDefaultValueMapping
+      ? ExtractValueType<FieldMetadataDefaultValueMapping[T]> | null
+      : never;
 
 type FieldMetadataDefaultValueExtractedTypes = {
   [K in keyof FieldMetadataDefaultValueMapping]: ExtractValueType<

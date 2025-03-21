@@ -1,9 +1,9 @@
-import styled from '@emotion/styled';
 import { useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { Key } from 'ts-key-enum';
-import { AvatarChip } from 'twenty-ui';
+import { MenuItem, MenuItemMultiSelectAvatar } from 'twenty-ui';
 
+import { StyledMultipleSelectDropdownAvatarChip } from '@/object-record/select/components/StyledMultipleSelectDropdownAvatarChip';
 import { SelectableItem } from '@/object-record/select/types/SelectableItem';
 import { DropdownMenuSkeletonItem } from '@/ui/input/relation-picker/components/skeletons/DropdownMenuSkeletonItem';
 import { DropdownMenuItemsContainer } from '@/ui/layout/dropdown/components/DropdownMenuItemsContainer';
@@ -11,19 +11,7 @@ import { useDropdown } from '@/ui/layout/dropdown/hooks/useDropdown';
 import { SelectableList } from '@/ui/layout/selectable-list/components/SelectableList';
 import { useSelectableListStates } from '@/ui/layout/selectable-list/hooks/internal/useSelectableListStates';
 import { useSelectableList } from '@/ui/layout/selectable-list/hooks/useSelectableList';
-import { MenuItem } from '@/ui/navigation/menu-item/components/MenuItem';
-import { MenuItemMultiSelectAvatar } from '@/ui/navigation/menu-item/components/MenuItemMultiSelectAvatar';
 import { useScopedHotkeys } from '@/ui/utilities/hotkey/hooks/useScopedHotkeys';
-
-const StyledAvatarChip = styled(AvatarChip)`
-  &.avatar-icon-container {
-    color: ${({ theme }) => theme.font.color.secondary};
-    gap: ${({ theme }) => theme.spacing(2)};
-    padding-left: 0px;
-    padding-right: 0px;
-    font-size: ${({ theme }) => theme.font.size.md};
-  }
-`;
 
 export const MultipleSelectDropdown = ({
   selectableListId,
@@ -131,7 +119,7 @@ export const MultipleSelectDropdown = ({
                 handleItemSelectChange(item, newCheckedValue);
               }}
               avatar={
-                <StyledAvatarChip
+                <StyledMultipleSelectDropdownAvatarChip
                   className="avatar-icon-container"
                   name={item.name}
                   avatarUrl={item.avatarUrl}
@@ -144,7 +132,7 @@ export const MultipleSelectDropdown = ({
             />
           );
         })}
-        {showNoResult && <MenuItem text="No result" />}
+        {showNoResult && <MenuItem text="No results" />}
         {loadingItems && <DropdownMenuSkeletonItem />}
       </DropdownMenuItemsContainer>
     </SelectableList>

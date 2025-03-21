@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
 
 import { ColumnType, EntitySchemaColumnOptions } from 'typeorm';
+import { FieldMetadataType } from 'twenty-shared';
 
 import { FieldMetadataInterface } from 'src/engine/metadata-modules/field-metadata/interfaces/field-metadata.interface';
 
 import { compositeTypeDefinitions } from 'src/engine/metadata-modules/field-metadata/composite-types';
-import { FieldMetadataType } from 'src/engine/metadata-modules/field-metadata/field-metadata.entity';
 import { computeCompositeColumnName } from 'src/engine/metadata-modules/field-metadata/utils/compute-column-name.util';
 import { isCompositeFieldMetadataType } from 'src/engine/metadata-modules/field-metadata/utils/is-composite-field-metadata-type.util';
 import { isEnumFieldMetadataType } from 'src/engine/metadata-modules/field-metadata/utils/is-enum-field-metadata-type.util';
 import { serializeDefaultValue } from 'src/engine/metadata-modules/field-metadata/utils/serialize-default-value';
-import { FieldMetadataMap } from 'src/engine/metadata-modules/utils/generate-object-metadata-map.util';
+import { FieldMetadataMap } from 'src/engine/metadata-modules/types/field-metadata-map';
 import { fieldMetadataTypeToColumnType } from 'src/engine/metadata-modules/workspace-migration/utils/field-metadata-type-to-column-type.util';
 import { isRelationFieldMetadataType } from 'src/engine/utils/is-relation-field-metadata-type.util';
 
@@ -20,10 +20,10 @@ type EntitySchemaColumnMap = {
 
 @Injectable()
 export class EntitySchemaColumnFactory {
-  create(fieldMetadataMap: FieldMetadataMap): EntitySchemaColumnMap {
+  create(fieldMetadataMapByName: FieldMetadataMap): EntitySchemaColumnMap {
     let entitySchemaColumnMap: EntitySchemaColumnMap = {};
 
-    const fieldMetadataCollection = Object.values(fieldMetadataMap);
+    const fieldMetadataCollection = Object.values(fieldMetadataMapByName);
 
     for (const fieldMetadata of fieldMetadataCollection) {
       const key = fieldMetadata.name;

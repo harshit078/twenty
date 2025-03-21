@@ -1,16 +1,18 @@
 import { AuthModal } from '@/auth/components/AuthModal';
-import { CommandMenu } from '@/command-menu/components/CommandMenu';
+import { CommandMenuRouter } from '@/command-menu/components/CommandMenuRouter';
 import { AppErrorBoundary } from '@/error-handler/components/AppErrorBoundary';
 import { KeyboardShortcutMenu } from '@/keyboard-shortcut-menu/components/KeyboardShortcutMenu';
 import { AppNavigationDrawer } from '@/navigation/components/AppNavigationDrawer';
 import { MobileNavigationBar } from '@/navigation/components/MobileNavigationBar';
 import { useIsSettingsPage } from '@/navigation/hooks/useIsSettingsPage';
 import { OBJECT_SETTINGS_WIDTH } from '@/settings/data-model/constants/ObjectSettings';
+import { SignInAppNavigationDrawerMock } from '@/sign-in-background-mock/components/SignInAppNavigationDrawerMock';
 import { SignInBackgroundMockPage } from '@/sign-in-background-mock/components/SignInBackgroundMockPage';
+import { useShowFullscreen } from '@/ui/layout/fullscreen/hooks/useShowFullscreen';
 import { useShowAuthModal } from '@/ui/layout/hooks/useShowAuthModal';
 import { NAV_DRAWER_WIDTHS } from '@/ui/navigation/navigation-drawer/constants/NavDrawerWidths';
 import { useIsMobile } from '@/ui/utilities/responsive/hooks/useIsMobile';
-import { css, Global, useTheme } from '@emotion/react';
+import { Global, css, useTheme } from '@emotion/react';
 import styled from '@emotion/styled';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import { Outlet } from 'react-router-dom';
@@ -52,6 +54,10 @@ const StyledAppNavigationDrawer = styled(AppNavigationDrawer)`
   flex-shrink: 0;
 `;
 
+const StyledAppNavigationDrawerMock = styled(SignInAppNavigationDrawerMock)`
+  flex-shrink: 0;
+`;
+
 const StyledMainContainer = styled.div`
   display: flex;
   flex: 0 1 100%;
@@ -64,6 +70,7 @@ export const DefaultLayout = () => {
   const theme = useTheme();
   const windowsWidth = useScreenSize().width;
   const showAuthModal = useShowAuthModal();
+  const useShowFullScreen = useShowFullscreen();
 
   return (
     <>
@@ -75,13 +82,17 @@ export const DefaultLayout = () => {
         `}
       />
       <StyledLayout>
-        <CommandMenu />
-        <KeyboardShortcutMenu />
+        {!showAuthModal && (
+          <>
+            <CommandMenuRouter />
+            <KeyboardShortcutMenu />
+          </>
+        )}
 
         <StyledPageContainer
           animate={{
             marginLeft:
-              isSettingsPage && !isMobile
+              isSettingsPage && !isMobile && !useShowFullScreen
                 ? (windowsWidth -
                     (OBJECT_SETTINGS_WIDTH +
                       NAV_DRAWER_WIDTHS.menu.desktop.expanded +
@@ -89,29 +100,31 @@ export const DefaultLayout = () => {
                   2
                 : 0,
           }}
-          transition={{
-            duration: theme.animation.duration.normal,
-          }}
+          transition={{ duration: theme.animation.duration.normal }}
         >
-          <StyledAppNavigationDrawer />
-          <StyledMainContainer>
-            {showAuthModal ? (
-              <>
-                <SignInBackgroundMockPage />
-                <AnimatePresence mode="wait">
-                  <LayoutGroup>
-                    <AuthModal>
-                      <Outlet />
-                    </AuthModal>
-                  </LayoutGroup>
-                </AnimatePresence>
-              </>
-            ) : (
+          {showAuthModal ? (
+            <StyledAppNavigationDrawerMock />
+          ) : useShowFullScreen ? null : (
+            <StyledAppNavigationDrawer />
+          )}
+          {showAuthModal ? (
+            <>
+              <SignInBackgroundMockPage />
+              <AnimatePresence mode="wait">
+                <LayoutGroup>
+                  <AuthModal>
+                    <Outlet />
+                  </AuthModal>
+                </LayoutGroup>
+              </AnimatePresence>
+            </>
+          ) : (
+            <StyledMainContainer>
               <AppErrorBoundary>
                 <Outlet />
               </AppErrorBoundary>
-            )}
-          </StyledMainContainer>
+            </StyledMainContainer>
+          )}
         </StyledPageContainer>
         {isMobile && <MobileNavigationBar />}
       </StyledLayout>

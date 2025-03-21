@@ -4,11 +4,13 @@ import { SettingsPath } from '@/types/SettingsPath';
 
 export enum SettingsPageTitles {
   Accounts = 'Account - Settings',
-  Appearance = 'Appearance - Settings',
+  Experience = 'Experience - Settings',
   Profile = 'Profile - Settings',
   Objects = 'Data model - Settings',
   Members = 'Members - Settings',
   Developers = 'Developers - Settings',
+  Apis = 'API Keys - Settings',
+  Webhooks = 'Webhooks - Settings',
   Integration = 'Integrations - Settings',
   ServerlessFunctions = 'Functions - Settings',
   General = 'General - Settings',
@@ -17,11 +19,12 @@ export enum SettingsPageTitles {
 
 enum SettingsPathPrefixes {
   Accounts = `${AppBasePath.Settings}/${SettingsPath.Accounts}`,
-  Appearance = `${AppBasePath.Settings}/${SettingsPath.Appearance}`,
+  Experience = `${AppBasePath.Settings}/${SettingsPath.Experience}`,
   Profile = `${AppBasePath.Settings}/${SettingsPath.ProfilePage}`,
   Objects = `${AppBasePath.Settings}/${SettingsPath.Objects}`,
   Members = `${AppBasePath.Settings}/${SettingsPath.WorkspaceMembersPage}`,
-  Developers = `${AppBasePath.Settings}/${SettingsPath.Developers}`,
+  ApiKeys = `${AppBasePath.Settings}/${SettingsPath.APIs}`,
+  Webhooks = `${AppBasePath.Settings}/${SettingsPath.Webhooks}`,
   ServerlessFunctions = `${AppBasePath.Settings}/${SettingsPath.ServerlessFunctions}`,
   Integration = `${AppBasePath.Settings}/${SettingsPath.Integrations}`,
   General = `${AppBasePath.Settings}/${SettingsPath.Workspace}`,
@@ -49,8 +52,8 @@ export const getPageTitleFromPath = (pathname: string): string => {
       return 'Create Workspace';
     case AppPath.CreateProfile:
       return 'Create Profile';
-    case SettingsPathPrefixes.Appearance:
-      return SettingsPageTitles.Appearance;
+    case SettingsPathPrefixes.Experience:
+      return SettingsPageTitles.Experience;
     case SettingsPathPrefixes.Accounts:
       return SettingsPageTitles.Accounts;
     case SettingsPathPrefixes.Profile:
@@ -59,8 +62,10 @@ export const getPageTitleFromPath = (pathname: string): string => {
       return SettingsPageTitles.Members;
     case SettingsPathPrefixes.Objects:
       return SettingsPageTitles.Objects;
-    case SettingsPathPrefixes.Developers:
-      return SettingsPageTitles.Developers;
+    case SettingsPathPrefixes.ApiKeys:
+      return SettingsPageTitles.Apis;
+    case SettingsPathPrefixes.Webhooks:
+      return SettingsPageTitles.Webhooks;
     case SettingsPathPrefixes.ServerlessFunctions:
       return SettingsPageTitles.ServerlessFunctions;
     case SettingsPathPrefixes.Integration:

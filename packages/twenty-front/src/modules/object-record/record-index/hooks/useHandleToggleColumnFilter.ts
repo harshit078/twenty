@@ -3,13 +3,22 @@ import { v4 } from 'uuid';
 
 import { useColumnDefinitionsFromFieldMetadata } from '@/object-metadata/hooks/useColumnDefinitionsFromFieldMetadata';
 import { useObjectMetadataItem } from '@/object-metadata/hooks/useObjectMetadataItem';
+
+import { availableFieldMetadataItemsForFilterFamilySelector } from '@/object-metadata/states/availableFieldMetadataItemsForFilterFamilySelector';
 import { getFilterTypeFromFieldType } from '@/object-metadata/utils/formatFieldMetadataItemsAsFilterDefinitions';
-import { Filter } from '@/object-record/object-filter-dropdown/types/Filter';
-import { FilterDefinition } from '@/object-record/object-filter-dropdown/types/FilterDefinition';
-import { getOperandsForFilterDefinition } from '@/object-record/object-filter-dropdown/utils/getOperandsForFilterType';
-import { useDropdownV2 } from '@/ui/layout/dropdown/hooks/useDropdownV2';
-import { useUpsertCombinedViewFilters } from '@/views/hooks/useUpsertCombinedViewFilters';
-import { isDefined } from '~/utils/isDefined';
+
+import { useSelectFilterUsedInDropdown } from '@/object-record/object-filter-dropdown/hooks/useSelectFilterUsedInDropdown';
+import { useUpsertRecordFilter } from '@/object-record/record-filter/hooks/useUpsertRecordFilter';
+import { currentRecordFiltersComponentState } from '@/object-record/record-filter/states/currentRecordFiltersComponentState';
+import { RecordFilter } from '@/object-record/record-filter/types/RecordFilter';
+import { getRecordFilterOperands } from '@/object-record/record-filter/utils/getRecordFilterOperands';
+import { useSetActiveDropdownFocusIdAndMemorizePrevious } from '@/ui/layout/dropdown/hooks/useSetFocusedDropdownIdAndMemorizePrevious';
+import { isDropdownOpenComponentState } from '@/ui/layout/dropdown/states/isDropdownOpenComponentState';
+import { usePreviousHotkeyScope } from '@/ui/utilities/hotkey/hooks/usePreviousHotkeyScope';
+import { useRecoilComponentValueV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValueV2';
+import { extractComponentState } from '@/ui/utilities/state/component-state/utils/extractComponentState';
+import { useRecoilCallback, useRecoilValue } from 'recoil';
+import { isDefined } from 'twenty-shared';
 
 type UseHandleToggleColumnFilterProps = {
   objectNameSingular: string;
@@ -17,8 +26,8 @@ type UseHandleToggleColumnFilterProps = {
 };
 
 export const useHandleToggleColumnFilter = ({
-  viewBarId,
   objectNameSingular,
+  viewBarId,
 }: UseHandleToggleColumnFilterProps) => {
   const { objectMetadataItem } = useObjectMetadataItem({
     objectNameSingular,
@@ -27,11 +36,48 @@ export const useHandleToggleColumnFilter = ({
   const { columnDefinitions } =
     useColumnDefinitionsFromFieldMetadata(objectMetadataItem);
 
-  const { upsertCombinedViewFilter } = useUpsertCombinedViewFilters(viewBarId);
-  const { openDropdown } = useDropdownV2();
+  const { upsertRecordFilter } = useUpsertRecordFilter();
+
+  const { setActiveDropdownFocusIdAndMemorizePrevious } =
+    useSetActiveDropdownFocusIdAndMemorizePrevious();
+
+  const { setHotkeyScopeAndMemorizePreviousScope } = usePreviousHotkeyScope();
+
+  const openDropdown = useRecoilCallback(
+    ({ set }) => {
+      return (dropdownId: string) => {
+        const dropdownOpenState = extractComponentState(
+          isDropdownOpenComponentState,
+          dropdownId,
+        );
+
+        setActiveDropdownFocusIdAndMemorizePrevious(dropdownId);
+        setHotkeyScopeAndMemorizePreviousScope(dropdownId);
+
+        set(dropdownOpenState, true);
+      };
+    },
+    [
+      setActiveDropdownFocusIdAndMemorizePrevious,
+      setHotkeyScopeAndMemorizePreviousScope,
+    ],
+  );
+
+  const availableFieldMetadataItemsForFilter = useRecoilValue(
+    availableFieldMetadataItemsForFilterFamilySelector({
+      objectMetadataItemId: objectMetadataItem.id,
+    }),
+  );
+
+  const { selectFilterUsedInDropdown } =
+    useSelectFilterUsedInDropdown(viewBarId);
+
+  const currentRecordFilters = useRecoilComponentValueV2(
+    currentRecordFiltersComponentState,
+  );
 
   const handleToggleColumnFilter = useCallback(
-    (fieldMetadataId: string) => {
+    async (fieldMetadataId: string) => {
       const correspondingColumnDefinition = columnDefinitions.find(
         (columnDefinition) =>
           columnDefinition.fieldMetadataId === fieldMetadataId,
@@ -39,38 +85,55 @@ export const useHandleToggleColumnFilter = ({
 
       if (!isDefined(correspondingColumnDefinition)) return;
 
-      const filterType = getFilterTypeFromFieldType(
-        correspondingColumnDefinition?.type,
+      const newFilterId = v4();
+
+      const existingRecordFilter = currentRecordFilters.find(
+        (recordFilter) => recordFilter.fieldMetadataId === fieldMetadataId,
       );
 
-      const filterDefinition = {
-        label: correspondingColumnDefinition.label,
-        iconName: correspondingColumnDefinition.iconName,
-        fieldMetadataId,
-        type: filterType,
-      } satisfies FilterDefinition;
+      if (!isDefined(existingRecordFilter)) {
+        const fieldMetadataItem = availableFieldMetadataItemsForFilter.find(
+          (fieldMetadataItemToFind) =>
+            fieldMetadataItemToFind.id === fieldMetadataId,
+        );
 
-      const availableOperandsForFilter =
-        getOperandsForFilterDefinition(filterDefinition);
+        if (!isDefined(fieldMetadataItem)) {
+          throw new Error('Field metadata item not found');
+        }
 
-      const defaultOperand = availableOperandsForFilter[0];
+        const filterType = getFilterTypeFromFieldType(fieldMetadataItem.type);
 
-      const newFilter: Filter = {
-        id: v4(),
-        fieldMetadataId,
-        operand: defaultOperand,
-        displayValue: '',
-        definition: filterDefinition,
-        value: '',
-      };
+        const availableOperandsForFilter = getRecordFilterOperands({
+          filterType,
+        });
 
-      upsertCombinedViewFilter(newFilter);
+        const defaultOperand = availableOperandsForFilter[0];
 
-      openDropdown(newFilter.id, {
-        scope: newFilter.id,
-      });
+        const newFilter: RecordFilter = {
+          id: newFilterId,
+          fieldMetadataId,
+          operand: defaultOperand,
+          displayValue: '',
+          label: fieldMetadataItem.label,
+          type: filterType,
+          value: '',
+        };
+
+        upsertRecordFilter(newFilter);
+
+        selectFilterUsedInDropdown({ fieldMetadataItemId: fieldMetadataId });
+      }
+
+      openDropdown(existingRecordFilter?.id ?? newFilterId);
     },
-    [columnDefinitions, upsertCombinedViewFilter, openDropdown],
+    [
+      openDropdown,
+      columnDefinitions,
+      selectFilterUsedInDropdown,
+      currentRecordFilters,
+      availableFieldMetadataItemsForFilter,
+      upsertRecordFilter,
+    ],
   );
 
   return handleToggleColumnFilter;

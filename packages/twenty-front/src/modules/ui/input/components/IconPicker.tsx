@@ -3,11 +3,11 @@ import { useMemo, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import {
   IconApps,
-  IconComponent,
-  useIcons,
   IconButton,
   IconButtonVariant,
+  IconComponent,
   LightIconButton,
+  useIcons,
 } from 'twenty-ui';
 
 import { Dropdown } from '@/ui/layout/dropdown/components/Dropdown';
@@ -22,6 +22,7 @@ import { usePreviousHotkeyScope } from '@/ui/utilities/hotkey/hooks/usePreviousH
 import { arrayToChunks } from '~/utils/array/arrayToChunks';
 
 import { IconPickerHotkeyScope } from '../types/IconPickerHotkeyScope';
+import { t } from '@lingui/core/macro';
 
 export type IconPickerProps = {
   disabled?: boolean;
@@ -33,7 +34,6 @@ export type IconPickerProps = {
   onOpen?: () => void;
   variant?: IconButtonVariant;
   className?: string;
-  disableBlur?: boolean;
 };
 
 const StyledMenuIconItemsContainer = styled.div`
@@ -90,7 +90,6 @@ export const IconPicker = ({
   onClose,
   onOpen,
   variant = 'secondary',
-  disableBlur = false,
   className,
 }: IconPickerProps) => {
   const [searchString, setSearchString] = useState('');
@@ -172,7 +171,6 @@ export const IconPicker = ({
           />
         }
         dropdownMenuWidth={176}
-        disableBlur={disableBlur}
         dropdownComponents={
           <SelectableList
             selectableListId="icon-list"
@@ -185,7 +183,7 @@ export const IconPicker = ({
           >
             <DropdownMenu width={176}>
               <DropdownMenuSearchInput
-                placeholder="Search icon"
+                placeholder={t`Search icon`}
                 autoFocus
                 onChange={(event) => {
                   setSearchString(event.target.value);

@@ -7,6 +7,8 @@ import { FieldMetadataType } from '~/generated/graphql';
 import { SnackBarDecorator } from '~/testing/decorators/SnackBarDecorator';
 
 import { FieldContextProvider } from '@/object-record/record-field/meta-types/components/FieldContextProvider';
+import { StorybookFieldInputDropdownFocusIdSetterEffect } from '~/testing/components/StorybookFieldInputDropdownFocusIdSetterEffect';
+import { I18nFrontDecorator } from '~/testing/decorators/I18nFrontDecorator';
 import { useNumberField } from '../../../hooks/useNumberField';
 import { NumberFieldInput, NumberFieldInputProps } from '../NumberFieldInput';
 
@@ -47,7 +49,7 @@ const NumberFieldInputWithContext = ({
           fieldMetadataId: 'number',
           label: 'Number',
           iconName: 'Icon123',
-          type: FieldMetadataType.Number,
+          type: FieldMetadataType.NUMBER,
           metadata: {
             fieldName: 'number',
             placeHolder: 'Enter number',
@@ -56,6 +58,7 @@ const NumberFieldInputWithContext = ({
         }}
         recordId={recordId}
       >
+        <StorybookFieldInputDropdownFocusIdSetterEffect />
         <NumberFieldValueSetterEffect value={value} />
         <NumberFieldInput
           onEnter={onEnter}
@@ -106,7 +109,7 @@ const meta: Meta = {
     onTab: { control: false },
     onShiftTab: { control: false },
   },
-  decorators: [clearMocksDecorator, SnackBarDecorator],
+  decorators: [clearMocksDecorator, SnackBarDecorator, I18nFrontDecorator],
   parameters: {
     clearMocks: true,
   },

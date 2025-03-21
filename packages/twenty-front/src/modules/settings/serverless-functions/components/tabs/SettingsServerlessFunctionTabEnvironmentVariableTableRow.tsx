@@ -1,12 +1,10 @@
 import { EnvironmentVariable } from '@/settings/serverless-functions/components/tabs/SettingsServerlessFunctionTabEnvironmentVariablesSection';
 import { TextInputV2 } from '@/ui/input/components/TextInputV2';
 import { Dropdown } from '@/ui/layout/dropdown/components/Dropdown';
-import { DropdownMenu } from '@/ui/layout/dropdown/components/DropdownMenu';
 import { DropdownMenuItemsContainer } from '@/ui/layout/dropdown/components/DropdownMenuItemsContainer';
 import { useDropdown } from '@/ui/layout/dropdown/hooks/useDropdown';
 import { TableCell } from '@/ui/layout/table/components/TableCell';
 import { TableRow } from '@/ui/layout/table/components/TableRow';
-import { MenuItem } from '@/ui/navigation/menu-item/components/MenuItem';
 import styled from '@emotion/styled';
 import { useState } from 'react';
 import {
@@ -16,6 +14,7 @@ import {
   IconTrash,
   IconX,
   LightIconButton,
+  MenuItem,
   OverflowingTextWithTooltip,
 } from 'twenty-ui';
 
@@ -101,7 +100,6 @@ export const SettingsServerlessFunctionTabEnvironmentVariableTableRow = ({
       </TableCell>
       <TableCell>
         <Dropdown
-          dropdownMenuWidth="100px"
           dropdownId={dropDownId}
           clickableComponent={
             <LightIconButton
@@ -111,30 +109,26 @@ export const SettingsServerlessFunctionTabEnvironmentVariableTableRow = ({
             />
           }
           dropdownComponents={
-            <DropdownMenu disableBlur disableBorder width="auto">
-              <DropdownMenuItemsContainer>
-                <MenuItem
-                  text={'Edit'}
-                  LeftIcon={IconPencil}
-                  onClick={() => {
-                    setEditMode(true);
-                    closeDropdown();
-                  }}
-                />
-                <MenuItem
-                  text={'Delete'}
-                  LeftIcon={IconTrash}
-                  onClick={() => {
-                    onDelete();
-                    closeDropdown();
-                  }}
-                />
-              </DropdownMenuItemsContainer>
-            </DropdownMenu>
+            <DropdownMenuItemsContainer>
+              <MenuItem
+                text={'Edit'}
+                LeftIcon={IconPencil}
+                onClick={() => {
+                  setEditMode(true);
+                  closeDropdown();
+                }}
+              />
+              <MenuItem
+                text={'Delete'}
+                LeftIcon={IconTrash}
+                onClick={() => {
+                  onDelete();
+                  closeDropdown();
+                }}
+              />
+            </DropdownMenuItemsContainer>
           }
-          dropdownHotkeyScope={{
-            scope: dropDownId,
-          }}
+          dropdownHotkeyScope={{ scope: dropDownId }}
         />
       </TableCell>
     </StyledTableRow>

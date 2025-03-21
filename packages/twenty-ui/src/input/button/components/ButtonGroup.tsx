@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 import React, { ReactNode } from 'react';
 
-import { isDefined } from '@ui/utilities';
+import { isDefined } from 'twenty-shared';
 
-import { ButtonPosition, ButtonProps } from './Button';
+import { ButtonPosition, ButtonProps } from './Button/Button';
 
 const StyledButtonGroupContainer = styled.div`
   border-radius: ${({ theme }) => theme.border.radius.md};

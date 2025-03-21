@@ -3,10 +3,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import crypto from 'crypto';
 
+import { i18n } from '@lingui/core';
+import { t } from '@lingui/core/macro';
 import { render } from '@react-email/render';
 import { addMilliseconds } from 'date-fns';
 import ms from 'ms';
 import { SendInviteLinkEmail } from 'twenty-emails';
+import { APP_LOCALES } from 'twenty-shared';
 import { IsNull, Repository } from 'typeorm';
 
 import {
@@ -17,12 +20,14 @@ import {
   AuthException,
   AuthExceptionCode,
 } from 'src/engine/core-modules/auth/auth.exception';
+import { DomainManagerService } from 'src/engine/core-modules/domain-manager/services/domain-manager.service';
 import { EmailService } from 'src/engine/core-modules/email/email.service';
 import { EnvironmentService } from 'src/engine/core-modules/environment/environment.service';
 import { OnboardingService } from 'src/engine/core-modules/onboarding/onboarding.service';
 import { UserWorkspace } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
 import { User } from 'src/engine/core-modules/user/user.entity';
 import { SendInvitationsOutput } from 'src/engine/core-modules/workspace-invitation/dtos/send-invitations.output';
+import { castAppTokenToWorkspaceInvitationUtil } from 'src/engine/core-modules/workspace-invitation/utils/cast-app-token-to-workspace-invitation.util';
 import {
   WorkspaceInvitationException,
   WorkspaceInvitationExceptionCode,
@@ -35,12 +40,67 @@ export class WorkspaceInvitationService {
   constructor(
     @InjectRepository(AppToken, 'core')
     private readonly appTokenRepository: Repository<AppToken>,
-    private readonly environmentService: EnvironmentService,
-    private readonly emailService: EmailService,
     @InjectRepository(UserWorkspace, 'core')
     private readonly userWorkspaceRepository: Repository<UserWorkspace>,
+    private readonly environmentService: EnvironmentService,
+    private readonly emailService: EmailService,
     private readonly onboardingService: OnboardingService,
+    private readonly domainManagerService: DomainManagerService,
   ) {}
+
+  async validatePersonalInvitation({
+    workspacePersonalInviteToken,
+    email,
+  }: {
+    workspacePersonalInviteToken?: string;
+    email: string;
+  }) {
+    try {
+      const appToken = await this.appTokenRepository.findOne({
+        where: {
+          value: workspacePersonalInviteToken,
+          type: AppTokenType.InvitationToken,
+        },
+        relations: ['workspace'],
+      });
+
+      if (!appToken) {
+        throw new Error('Invalid invitation token');
+      }
+
+      if (!appToken.context?.email || appToken.context?.email !== email) {
+        throw new Error('Email does not match the invitation');
+      }
+
+      if (new Date(appToken.expiresAt) < new Date()) {
+        throw new Error('Invitation expired');
+      }
+
+      return { isValid: true, workspace: appToken.workspace };
+    } catch (err) {
+      throw new AuthException(
+        err.message,
+        AuthExceptionCode.FORBIDDEN_EXCEPTION,
+      );
+    }
+  }
+
+  async findInvitationByWorkspaceSubdomainAndUserEmail({
+    subdomain,
+    email,
+  }: {
+    subdomain: string;
+    email: string;
+  }) {
+    const workspace =
+      await this.domainManagerService.getWorkspaceBySubdomainOrDefaultWorkspace(
+        subdomain,
+      );
+
+    if (!workspace) return;
+
+    return await this.getOneWorkspaceInvitation(workspace.id, email);
+  }
 
   async getOneWorkspaceInvitation(workspaceId: string, email: string) {
     return await this.appTokenRepository
@@ -55,26 +115,38 @@ export class WorkspaceInvitationService {
       .getOne();
   }
 
-  castAppTokenToWorkspaceInvitation(appToken: AppToken) {
-    if (appToken.type !== AppTokenType.InvitationToken) {
+  async getAppTokenByInvitationToken(invitationToken: string) {
+    const appToken = await this.appTokenRepository.findOne({
+      where: {
+        value: invitationToken,
+        type: AppTokenType.InvitationToken,
+      },
+      relations: ['workspace'],
+    });
+
+    if (!appToken) {
       throw new WorkspaceInvitationException(
-        `Token type must be "${AppTokenType.InvitationToken}"`,
-        WorkspaceInvitationExceptionCode.INVALID_APP_TOKEN_TYPE,
+        'Invalid invitation token',
+        WorkspaceInvitationExceptionCode.INVALID_INVITATION,
       );
     }
 
-    if (!appToken.context?.email) {
-      throw new WorkspaceInvitationException(
-        `Invitation corrupted: Missing email in context`,
-        WorkspaceInvitationExceptionCode.INVITATION_CORRUPTED,
-      );
-    }
+    return appToken;
+  }
 
-    return {
-      id: appToken.id,
-      email: appToken.context.email,
-      expiresAt: appToken.expiresAt,
-    };
+  async loadWorkspaceInvitations(workspace: Workspace) {
+    const appTokens = await this.appTokenRepository.find({
+      where: {
+        workspaceId: workspace.id,
+        type: AppTokenType.InvitationToken,
+        deletedAt: IsNull(),
+      },
+      select: {
+        value: false,
+      },
+    });
+
+    return appTokens.map(castAppTokenToWorkspaceInvitationUtil);
   }
 
   async createWorkspaceInvitation(email: string, workspace: Workspace) {
@@ -110,21 +182,6 @@ export class WorkspaceInvitationService {
     }
 
     return this.generateInvitationToken(workspace.id, email);
-  }
-
-  async loadWorkspaceInvitations(workspace: Workspace) {
-    const appTokens = await this.appTokenRepository.find({
-      where: {
-        workspaceId: workspace.id,
-        type: AppTokenType.InvitationToken,
-        deletedAt: IsNull(),
-      },
-      select: {
-        value: false,
-      },
-    });
-
-    return appTokens.map(this.castAppTokenToWorkspaceInvitation);
   }
 
   async deleteWorkspaceInvitation(appTokenId: string, workspaceId: string) {
@@ -221,37 +278,44 @@ export class WorkspaceInvitationService {
       }),
     );
 
-    const frontBaseURL = this.environmentService.get('FRONT_BASE_URL');
-
     for (const invitation of invitationsPr) {
       if (invitation.status === 'fulfilled') {
-        const link = new URL(`${frontBaseURL}/invite/${workspace?.inviteHash}`);
+        const link = this.domainManagerService.buildWorkspaceURL({
+          workspace,
+          pathname: `invite/${workspace?.inviteHash}`,
+          searchParams: invitation.value.isPersonalInvitation
+            ? {
+                inviteToken: invitation.value.appToken.value,
+                email: invitation.value.email,
+              }
+            : {},
+        });
 
-        if (invitation.value.isPersonalInvitation) {
-          link.searchParams.set('inviteToken', invitation.value.appToken.value);
-        }
+        // Todo: sender name and locale should come from workspace member not user!
         const emailData = {
           link: link.toString(),
           workspace: { name: workspace.displayName, logo: workspace.logo },
-          sender: { email: sender.email, firstName: sender.firstName },
+          sender: {
+            email: sender.email,
+            firstName: sender.firstName,
+            lastName: sender.lastName,
+          },
           serverUrl: this.environmentService.get('SERVER_URL'),
+          locale: sender.locale as keyof typeof APP_LOCALES,
         };
 
         const emailTemplate = SendInviteLinkEmail(emailData);
-        const html = render(emailTemplate, {
-          pretty: true,
-        });
-
+        const html = render(emailTemplate);
         const text = render(emailTemplate, {
           plainText: true,
         });
 
+        i18n.activate(sender.locale);
+
         await this.emailService.send({
-          from: `${this.environmentService.get(
-            'EMAIL_FROM_NAME',
-          )} <${this.environmentService.get('EMAIL_FROM_ADDRESS')}>`,
+          from: `${sender.firstName} ${sender.lastName} (via Twenty) <${this.environmentService.get('EMAIL_FROM_ADDRESS')}>`,
           to: invitation.value.email,
-          subject: 'Join your team on Twenty',
+          subject: t`Join your team on Twenty`,
           text,
           html,
         });
@@ -279,9 +343,7 @@ export class WorkspaceInvitationService {
         } else {
           acc.result.push(
             invitation.value.isPersonalInvitation
-              ? this.castAppTokenToWorkspaceInvitation(
-                  invitation.value.appToken,
-                )
+              ? castAppTokenToWorkspaceInvitationUtil(invitation.value.appToken)
               : { email: invitation.value.email },
           );
         }

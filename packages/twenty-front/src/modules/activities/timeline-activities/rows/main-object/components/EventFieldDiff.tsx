@@ -6,6 +6,7 @@ import { EventFieldDiffValueEffect } from '@/activities/timeline-activities/rows
 import { FieldMetadataItem } from '@/object-metadata/types/FieldMetadataItem';
 import { ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { RecordFieldValueSelectorContextProvider } from '@/object-record/record-store/contexts/RecordFieldValueSelectorContext';
+import { Trans } from '@lingui/react/macro';
 
 type EventFieldDiffProps = {
   diffRecord: Record<string, any>;
@@ -20,7 +21,10 @@ const StyledEventFieldDiffContainer = styled.div`
   flex-direction: row;
   gap: ${({ theme }) => theme.spacing(1)};
   height: 24px;
-  width: 380px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const StyledEmptyValue = styled.div`
@@ -54,7 +58,9 @@ export const EventFieldDiff = ({
       <StyledEventFieldDiffContainer>
         <EventFieldDiffLabel fieldMetadataItem={fieldMetadataItem} />→
         {isUpdatedToEmpty ? (
-          <StyledEmptyValue>Empty</StyledEmptyValue>
+          <StyledEmptyValue>
+            <Trans>Empty</Trans>
+          </StyledEmptyValue>
         ) : (
           <>
             <EventFieldDiffValueEffect

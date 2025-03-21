@@ -1,4 +1,5 @@
 import {
+  Check,
   Column,
   CreateDateColumn,
   Entity,
@@ -6,10 +7,13 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-import { FunctionParameter } from 'src/engine/metadata-modules/serverless-function/dtos/function-parameter.dto';
+import { InputSchema } from 'src/modules/workflow/workflow-builder/workflow-schema/types/input-schema.type';
+
+const DEFAULT_SERVERLESS_TIMEOUT_SECONDS = 300; // 5 minutes
 
 export enum ServerlessFunctionSyncStatus {
   NOT_READY = 'NOT_READY',
+  BUILDING = 'BUILDING',
   READY = 'READY',
 }
 
@@ -35,10 +39,14 @@ export class ServerlessFunctionEntity {
   publishedVersions: string[];
 
   @Column({ nullable: true, type: 'jsonb' })
-  latestVersionInputSchema: FunctionParameter[];
+  latestVersionInputSchema: InputSchema;
 
   @Column({ nullable: false, default: ServerlessFunctionRuntime.NODE18 })
   runtime: ServerlessFunctionRuntime;
+
+  @Column({ nullable: false, default: DEFAULT_SERVERLESS_TIMEOUT_SECONDS })
+  @Check(`"timeoutSeconds" >= 1 AND "timeoutSeconds" <= 900`)
+  timeoutSeconds: number;
 
   @Column({ nullable: true })
   layerVersion: number;

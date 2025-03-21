@@ -7,10 +7,10 @@ import { ObjectMetadataInterface } from 'src/engine/metadata-modules/field-metad
 
 import { TypeDefinitionsGenerator } from './type-definitions.generator';
 
-import { WorkspaceBuildSchemaOptions } from './interfaces/workspace-build-schema-optionts.interface';
-import { QueryTypeFactory } from './factories/query-type.factory';
 import { MutationTypeFactory } from './factories/mutation-type.factory';
 import { OrphanedTypesFactory } from './factories/orphaned-types.factory';
+import { QueryTypeFactory } from './factories/query-type.factory';
+import { WorkspaceBuildSchemaOptions } from './interfaces/workspace-build-schema-optionts.interface';
 
 @Injectable()
 export class WorkspaceGraphQLSchemaFactory {
@@ -27,7 +27,10 @@ export class WorkspaceGraphQLSchemaFactory {
     options: WorkspaceBuildSchemaOptions = {},
   ): Promise<GraphQLSchema> {
     // Generate type definitions
-    this.typeDefinitionsGenerator.generate(objectMetadataCollection, options);
+    await this.typeDefinitionsGenerator.generate(
+      objectMetadataCollection,
+      options,
+    );
 
     // Generate schema
     const schema = new GraphQLSchema({

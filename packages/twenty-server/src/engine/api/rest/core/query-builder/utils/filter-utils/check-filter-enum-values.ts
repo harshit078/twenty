@@ -1,14 +1,14 @@
 import { BadRequestException } from '@nestjs/common';
 
-import { ObjectMetadataInterface } from 'src/engine/metadata-modules/field-metadata/interfaces/object-metadata.interface';
+import { FieldMetadataType } from 'twenty-shared';
 
-import { FieldMetadataType } from 'src/engine/metadata-modules/field-metadata/field-metadata.entity';
+import { ObjectMetadataItemWithFieldMaps } from 'src/engine/metadata-modules/types/object-metadata-item-with-field-maps';
 
 export const checkFilterEnumValues = (
   fieldType: FieldMetadataType | undefined,
   fieldName: string,
   value: string,
-  objectMetadataItem: ObjectMetadataInterface,
+  objectMetadataItem: ObjectMetadataItemWithFieldMaps,
 ): void => {
   if (
     !fieldType ||
@@ -18,9 +18,7 @@ export const checkFilterEnumValues = (
   ) {
     return;
   }
-  const field = objectMetadataItem.fields.find(
-    (field) => field.name === fieldName,
-  );
+  const field = objectMetadataItem.fieldsByName[fieldName];
 
   const values = /^\[.*\]$/.test(value)
     ? value.slice(1, -1).split(',')

@@ -7,10 +7,21 @@ import { RecordIndexActionMenuDropdown } from '@/action-menu/components/RecordIn
 import { actionMenuEntriesComponentState } from '@/action-menu/states/actionMenuEntriesComponentState';
 import { ActionMenuComponentInstanceContext } from '@/action-menu/states/contexts/ActionMenuComponentInstanceContext';
 import { recordIndexActionMenuDropdownPositionComponentState } from '@/action-menu/states/recordIndexActionMenuDropdownPositionComponentState';
-import { ActionMenuEntry } from '@/action-menu/types/ActionMenuEntry';
+import {
+  ActionMenuEntry,
+  ActionMenuEntryScope,
+  ActionMenuEntryType,
+} from '@/action-menu/types/ActionMenuEntry';
 import { isDropdownOpenComponentState } from '@/ui/layout/dropdown/states/isDropdownOpenComponentState';
 import { extractComponentState } from '@/ui/utilities/state/component-state/utils/extractComponentState';
-import { IconCheckbox, IconHeart, IconTrash } from 'twenty-ui';
+import { msg } from '@lingui/core/macro';
+import {
+  IconCheckbox,
+  IconHeart,
+  IconTrash,
+  getCanvasElementForDropdownTesting,
+} from 'twenty-ui';
+import { I18nFrontDecorator } from '~/testing/decorators/I18nFrontDecorator';
 
 const deleteMock = jest.fn();
 const markAsDoneMock = jest.fn();
@@ -20,6 +31,7 @@ const meta: Meta<typeof RecordIndexActionMenuDropdown> = {
   title: 'Modules/ActionMenu/RecordIndexActionMenuDropdown',
   component: RecordIndexActionMenuDropdown,
   decorators: [
+    I18nFrontDecorator,
     (Story) => (
       <RecoilRoot
         initializeState={({ set }) => {
@@ -41,27 +53,30 @@ const meta: Meta<typeof RecordIndexActionMenuDropdown> = {
           );
 
           map.set('delete', {
-            type: 'standard',
+            type: ActionMenuEntryType.Standard,
+            scope: ActionMenuEntryScope.RecordSelection,
             key: 'delete',
-            label: 'Delete',
+            label: msg`Delete`,
             position: 0,
             Icon: IconTrash,
             onClick: deleteMock,
           });
 
           map.set('markAsDone', {
-            type: 'standard',
+            type: ActionMenuEntryType.Standard,
+            scope: ActionMenuEntryScope.RecordSelection,
             key: 'markAsDone',
-            label: 'Mark as done',
+            label: msg`Mark as done`,
             position: 1,
             Icon: IconCheckbox,
             onClick: markAsDoneMock,
           });
 
           map.set('addToFavorites', {
-            type: 'standard',
+            type: ActionMenuEntryType.Standard,
+            scope: ActionMenuEntryScope.RecordSelection,
             key: 'addToFavorites',
-            label: 'Add to favorites',
+            label: msg`Add to favorites`,
             position: 2,
             Icon: IconHeart,
             onClick: addToFavoritesMock,
@@ -100,19 +115,13 @@ export const WithInteractions: Story = {
   args: {
     actionMenuId: 'story',
   },
-  play: async ({ canvasElement }) => {
+  play: async () => {
+    const canvasElement = getCanvasElementForDropdownTesting();
+
     const canvas = within(canvasElement);
 
     const deleteButton = await canvas.findByText('Delete');
     await userEvent.click(deleteButton);
     expect(deleteMock).toHaveBeenCalled();
-
-    const markAsDoneButton = await canvas.findByText('Mark as done');
-    await userEvent.click(markAsDoneButton);
-    expect(markAsDoneMock).toHaveBeenCalled();
-
-    const addToFavoritesButton = await canvas.findByText('Add to favorites');
-    await userEvent.click(addToFavoritesButton);
-    expect(addToFavoritesMock).toHaveBeenCalled();
   },
 };

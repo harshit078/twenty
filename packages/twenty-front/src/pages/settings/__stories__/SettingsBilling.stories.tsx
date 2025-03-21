@@ -1,7 +1,7 @@
+import { expect } from '@storybook/jest';
 import { Meta, StoryObj } from '@storybook/react';
 import { within } from '@storybook/test';
 
-import { getSettingsPagePath } from '@/settings/utils/getSettingsPagePath';
 import { SettingsPath } from '@/types/SettingsPath';
 import {
   PageDecorator,
@@ -10,13 +10,14 @@ import {
 import { graphqlMocks } from '~/testing/graphqlMocks';
 import { sleep } from '~/utils/sleep';
 
+import { getSettingsPath } from '~/utils/navigation/getSettingsPath';
 import { SettingsBilling } from '../SettingsBilling';
 
 const meta: Meta<PageDecoratorArgs> = {
   title: 'Pages/Settings/SettingsBilling',
   component: SettingsBilling,
   decorators: [PageDecorator],
-  args: { routePath: getSettingsPagePath(SettingsPath.Billing) },
+  args: { routePath: getSettingsPath(SettingsPath.Billing) },
   parameters: {
     msw: graphqlMocks,
   },
@@ -31,6 +32,12 @@ export const Default: Story = {
     const canvas = within(canvasElement);
     sleep(1000);
 
-    await canvas.findByRole('button', { name: 'View billing details' });
+    const buttons = await canvas.findAllByRole('button');
+
+    expect(
+      buttons.findIndex((button) =>
+        button.outerHTML.includes('View billing details'),
+      ),
+    ).toBeGreaterThan(-1);
   },
 };

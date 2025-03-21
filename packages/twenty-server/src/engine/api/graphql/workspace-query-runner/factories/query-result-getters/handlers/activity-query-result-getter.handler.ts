@@ -1,5 +1,6 @@
 import { QueryResultGetterHandlerInterface } from 'src/engine/api/graphql/workspace-query-runner/factories/query-result-getters/interfaces/query-result-getter-handler.interface';
 
+import { FeatureFlagService } from 'src/engine/core-modules/feature-flag/services/feature-flag.service';
 import { FileService } from 'src/engine/core-modules/file/services/file.service';
 import { NoteWorkspaceEntity } from 'src/modules/note/standard-objects/note.workspace-entity';
 import { TaskWorkspaceEntity } from 'src/modules/task/standard-objects/task.workspace-entity';
@@ -11,20 +12,38 @@ type RichTextBody = RichTextBlock[];
 export class ActivityQueryResultGetterHandler
   implements QueryResultGetterHandlerInterface
 {
-  constructor(private readonly fileService: FileService) {}
+  constructor(
+    private readonly fileService: FileService,
+    private readonly featureFlagService: FeatureFlagService,
+  ) {}
 
   async handle(
     activity: TaskWorkspaceEntity | NoteWorkspaceEntity,
     workspaceId: string,
   ): Promise<TaskWorkspaceEntity | NoteWorkspaceEntity> {
-    if (!activity.id || !activity.body) {
+    const blocknoteJson = activity.bodyV2?.blocknote;
+
+    if (!activity.id || !blocknoteJson) {
       return activity;
     }
 
-    const body: RichTextBody = JSON.parse(activity.body);
+    let blocknote: RichTextBody = [];
 
-    const bodyWithSignedPayload = await Promise.all(
-      body.map(async (block: RichTextBlock) => {
+    try {
+      blocknote = JSON.parse(blocknoteJson);
+    } catch (error) {
+      blocknote = [];
+      // TODO: Remove this once we have removed the old rich text
+      // eslint-disable-next-line no-console
+      console.warn(
+        `Failed to parse body for activity ${activity.id} in workspace ${workspaceId}, for rich text version 'v2'`,
+      );
+      // eslint-disable-next-line no-console
+      console.warn(blocknoteJson);
+    }
+
+    const blocknoteWithSignedPayload = await Promise.all(
+      blocknote.map(async (block: RichTextBlock) => {
         if (block.type !== 'image' || !block.props.url) {
           return block;
         }
@@ -51,7 +70,10 @@ export class ActivityQueryResultGetterHandler
 
     return {
       ...activity,
-      body: JSON.stringify(bodyWithSignedPayload),
+      bodyV2: {
+        blocknote: JSON.stringify(blocknoteWithSignedPayload),
+        markdown: activity.bodyV2?.markdown ?? null,
+      },
     };
   }
 }

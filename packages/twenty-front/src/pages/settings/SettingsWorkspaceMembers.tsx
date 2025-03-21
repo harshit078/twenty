@@ -1,5 +1,6 @@
 import { useTheme } from '@emotion/react';
 import styled from '@emotion/styled';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { isNonEmptyArray } from '@sniptt/guards';
 import { useState } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
@@ -10,6 +11,7 @@ import {
   IconButton,
   IconMail,
   IconReload,
+  IconSearch,
   IconTrash,
   Section,
   Status,
@@ -22,10 +24,10 @@ import { CoreObjectNameSingular } from '@/object-metadata/types/CoreObjectNameSi
 import { useDeleteOneRecord } from '@/object-record/hooks/useDeleteOneRecord';
 import { useFindManyRecords } from '@/object-record/hooks/useFindManyRecords';
 import { SettingsPageContainer } from '@/settings/components/SettingsPageContainer';
-import { getSettingsPagePath } from '@/settings/utils/getSettingsPagePath';
 import { SettingsPath } from '@/types/SettingsPath';
 import { SnackBarVariant } from '@/ui/feedback/snack-bar-manager/components/SnackBar';
 import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
+import { TextInput } from '@/ui/input/components/TextInput';
 import { ConfirmationModal } from '@/ui/layout/modal/components/ConfirmationModal';
 import { SubMenuTopBarContainer } from '@/ui/layout/page/components/SubMenuTopBarContainer';
 import { Table } from '@/ui/layout/table/components/Table';
@@ -34,8 +36,9 @@ import { WorkspaceMember } from '@/workspace-member/types/WorkspaceMember';
 import { WorkspaceInviteLink } from '@/workspace/components/WorkspaceInviteLink';
 import { WorkspaceInviteTeam } from '@/workspace/components/WorkspaceInviteTeam';
 import { formatDistanceToNow } from 'date-fns';
+import { isDefined } from 'twenty-shared';
 import { useGetWorkspaceInvitationsQuery } from '~/generated/graphql';
-import { isDefined } from '~/utils/isDefined';
+import { getSettingsPath } from '~/utils/navigation/getSettingsPath';
 import { TableCell } from '../../modules/ui/layout/table/components/TableCell';
 import { TableRow } from '../../modules/ui/layout/table/components/TableRow';
 import { useDeleteWorkspaceInvitation } from '../../modules/workspace-invitation/hooks/useDeleteWorkspaceInvitation';
@@ -50,11 +53,7 @@ const StyledButtonContainer = styled.div`
 `;
 
 const StyledTable = styled(Table)`
-  margin-top: ${({ theme }) => theme.spacing(0.5)};
-`;
-
-const StyledTableHeaderRow = styled(Table)`
-  margin-bottom: ${({ theme }) => theme.spacing(1.5)};
+  border-bottom: 1px solid ${({ theme }) => theme.border.color.light};
 `;
 
 const StyledIconWrapper = styled.div`
@@ -69,7 +68,28 @@ const StyledTextContainerWithEllipsis = styled.div`
   white-space: nowrap;
 `;
 
+const StyledSearchContainer = styled.div`
+  padding-bottom: ${({ theme }) => theme.spacing(2)};
+`;
+
+const StyledSearchInput = styled(TextInput)`
+  input {
+    background: ${({ theme }) => theme.background.transparent.lighter};
+    border: 1px solid ${({ theme }) => theme.border.color.medium};
+  }
+`;
+
+const StyledTableRows = styled.div`
+  padding-bottom: ${({ theme }) => theme.spacing(2)};
+  padding-top: ${({ theme }) => theme.spacing(2)};
+`;
+
+const StyledNoMembers = styled(TableCell)`
+  color: ${({ theme }) => theme.font.color.tertiary};
+`;
+
 export const SettingsWorkspaceMembers = () => {
+  const { t } = useLingui();
   const { enqueueSnackBar } = useSnackBar();
   const theme = useTheme();
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
@@ -98,6 +118,12 @@ export const SettingsWorkspaceMembers = () => {
   const workspaceInvitations = useRecoilValue(workspaceInvitationsState);
   const setWorkspaceInvitations = useSetRecoilState(workspaceInvitationsState);
 
+  const [searchFilter, setSearchFilter] = useState('');
+
+  const handleSearchChange = (text: string) => {
+    setSearchFilter(text);
+  };
+
   useGetWorkspaceInvitationsQuery({
     onError: (error: Error) => {
       enqueueSnackBar(error.message, {
@@ -112,7 +138,7 @@ export const SettingsWorkspaceMembers = () => {
   const handleRemoveWorkspaceInvitation = async (appTokenId: string) => {
     const result = await deleteWorkspaceInvitation({ appTokenId });
     if (isDefined(result.errors)) {
-      enqueueSnackBar('Error deleting invitation', {
+      enqueueSnackBar(t`Error deleting invitation`, {
         variant: SnackBarVariant.Error,
         duration: 2000,
       });
@@ -122,7 +148,7 @@ export const SettingsWorkspaceMembers = () => {
   const handleResendWorkspaceInvitation = async (appTokenId: string) => {
     const result = await resendInvitation({ appTokenId });
     if (isDefined(result.errors)) {
-      enqueueSnackBar('Error resending invitation', {
+      enqueueSnackBar(t`Error resending invitation`, {
         variant: SnackBarVariant.Error,
         duration: 2000,
       });
@@ -132,19 +158,34 @@ export const SettingsWorkspaceMembers = () => {
   const getExpiresAtText = (expiresAt: string) => {
     const expiresAtDate = new Date(expiresAt);
     return expiresAtDate < new Date()
-      ? 'Expired'
+      ? t`Expired`
       : formatDistanceToNow(new Date(expiresAt));
   };
 
+  const filteredWorkspaceMembers = !searchFilter
+    ? workspaceMembers
+    : workspaceMembers.filter((member) => {
+        const searchTerm = searchFilter.toLowerCase();
+        const firstName = member.name.firstName?.toLowerCase() || '';
+        const lastName = member.name.lastName?.toLowerCase() || '';
+        const email = member.userEmail?.toLowerCase() || '';
+
+        return (
+          firstName.includes(searchTerm) ||
+          lastName.includes(searchTerm) ||
+          email.includes(searchTerm)
+        );
+      });
+
   return (
     <SubMenuTopBarContainer
-      title="Members"
+      title={t`Members`}
       links={[
         {
-          children: 'Workspace',
-          href: getSettingsPagePath(SettingsPath.Workspace),
+          children: <Trans>Workspace</Trans>,
+          href: getSettingsPath(SettingsPath.Workspace),
         },
-        { children: 'Members' },
+        { children: <Trans>Members</Trans> },
       ]}
     >
       <SettingsPageContainer>
@@ -152,8 +193,8 @@ export const SettingsWorkspaceMembers = () => {
           currentWorkspace?.isPublicInviteLinkEnabled && (
             <Section>
               <H2Title
-                title="Invite by link"
-                description="Share this link to invite users to join your workspace"
+                title={t`Invite by link`}
+                description={t`Share this link to invite users to join your workspace`}
               />
               <WorkspaceInviteLink
                 inviteLink={`${window.location.origin}/invite/${currentWorkspace?.inviteHash}`}
@@ -162,100 +203,124 @@ export const SettingsWorkspaceMembers = () => {
           )}
         <Section>
           <H2Title
-            title="Members"
-            description="Manage the members of your space here"
+            title={t`Manage Members`}
+            description={t`Manage the members of your space here`}
           />
-          <Table>
-            <StyledTableHeaderRow>
+          <StyledSearchContainer>
+            <StyledSearchInput
+              value={searchFilter}
+              onChange={handleSearchChange}
+              placeholder={t`Search a team member...`}
+              fullWidth
+              LeftIcon={IconSearch}
+              sizeVariant="lg"
+            />
+          </StyledSearchContainer>
+          <StyledTable>
+            <TableRow
+              gridAutoColumns="150px 1fr 1fr"
+              mobileGridAutoColumns="100px 1fr 1fr"
+            >
+              <TableHeader>
+                <Trans>Name</Trans>
+              </TableHeader>
+              <TableHeader>
+                <Trans>Email</Trans>
+              </TableHeader>
+              <TableHeader align={'right'}></TableHeader>
+            </TableRow>
+            <StyledTableRows>
+              {filteredWorkspaceMembers.length > 0 ? (
+                filteredWorkspaceMembers.map((workspaceMember) => (
+                  <TableRow
+                    gridAutoColumns="150px 1fr 1fr"
+                    mobileGridAutoColumns="100px 1fr 1fr"
+                    key={workspaceMember.id}
+                  >
+                    <TableCell>
+                      <StyledIconWrapper>
+                        <Avatar
+                          avatarUrl={workspaceMember.avatarUrl}
+                          placeholderColorSeed={workspaceMember.id}
+                          placeholder={workspaceMember.name.firstName ?? ''}
+                          type="rounded"
+                          size="sm"
+                        />
+                      </StyledIconWrapper>
+                      <StyledTextContainerWithEllipsis
+                        id={`hover-text-${workspaceMember.id}`}
+                      >
+                        {workspaceMember.name.firstName +
+                          ' ' +
+                          workspaceMember.name.lastName}
+                      </StyledTextContainerWithEllipsis>
+                      <AppTooltip
+                        anchorSelect={`#hover-text-${workspaceMember.id}`}
+                        content={`${workspaceMember.name.firstName} ${workspaceMember.name.lastName}`}
+                        noArrow
+                        place="top"
+                        positionStrategy="fixed"
+                        delay={TooltipDelay.shortDelay}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <StyledTextContainerWithEllipsis>
+                        {workspaceMember.userEmail}
+                      </StyledTextContainerWithEllipsis>
+                    </TableCell>
+                    <TableCell align={'right'}>
+                      {currentWorkspaceMember?.id !== workspaceMember.id && (
+                        <StyledButtonContainer>
+                          <IconButton
+                            onClick={() => {
+                              setIsConfirmationModalOpen(true);
+                              setWorkspaceMemberToDelete(workspaceMember.id);
+                            }}
+                            variant="tertiary"
+                            size="medium"
+                            Icon={IconTrash}
+                          />
+                        </StyledButtonContainer>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <StyledNoMembers>
+                  {!searchFilter
+                    ? t`No members`
+                    : t`No members match your search`}
+                </StyledNoMembers>
+              )}
+            </StyledTableRows>
+          </StyledTable>
+        </Section>
+        <Section>
+          <H2Title
+            title={t`Invite by email`}
+            description={t`Send an invite email to your team`}
+          />
+          <WorkspaceInviteTeam />
+          {isNonEmptyArray(workspaceInvitations) && (
+            <StyledTable>
               <TableRow
                 gridAutoColumns="150px 1fr 1fr"
                 mobileGridAutoColumns="100px 1fr 1fr"
               >
-                <TableHeader>Name</TableHeader>
-                <TableHeader>Email</TableHeader>
-                <TableHeader align={'right'}></TableHeader>
+                <TableHeader>
+                  <Trans>Email</Trans>
+                </TableHeader>
+                <TableHeader align={'right'}>
+                  <Trans>Expires in</Trans>
+                </TableHeader>
+                <TableHeader></TableHeader>
               </TableRow>
-            </StyledTableHeaderRow>
-            {workspaceMembers?.map((workspaceMember) => (
-              <StyledTable key={workspaceMember.id}>
-                <TableRow
-                  gridAutoColumns="150px 1fr 1fr"
-                  mobileGridAutoColumns="100px 1fr 1fr"
-                >
-                  <TableCell>
-                    <StyledIconWrapper>
-                      <Avatar
-                        avatarUrl={workspaceMember.avatarUrl}
-                        placeholderColorSeed={workspaceMember.id}
-                        placeholder={workspaceMember.name.firstName ?? ''}
-                        type="rounded"
-                        size="sm"
-                      />
-                    </StyledIconWrapper>
-                    <StyledTextContainerWithEllipsis
-                      id={`hover-text-${workspaceMember.id}`}
-                    >
-                      {workspaceMember.name.firstName +
-                        ' ' +
-                        workspaceMember.name.lastName}
-                    </StyledTextContainerWithEllipsis>
-                    <AppTooltip
-                      anchorSelect={`#hover-text-${workspaceMember.id}`}
-                      content={`${workspaceMember.name.firstName} ${workspaceMember.name.lastName}`}
-                      noArrow
-                      place="top"
-                      positionStrategy="fixed"
-                      delay={TooltipDelay.shortDelay}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <StyledTextContainerWithEllipsis>
-                      {workspaceMember.userEmail}
-                    </StyledTextContainerWithEllipsis>
-                  </TableCell>
-                  <TableCell align={'right'}>
-                    {currentWorkspaceMember?.id !== workspaceMember.id && (
-                      <StyledButtonContainer>
-                        <IconButton
-                          onClick={() => {
-                            setIsConfirmationModalOpen(true);
-                            setWorkspaceMemberToDelete(workspaceMember.id);
-                          }}
-                          variant="tertiary"
-                          size="medium"
-                          Icon={IconTrash}
-                        />
-                      </StyledButtonContainer>
-                    )}
-                  </TableCell>
-                </TableRow>
-              </StyledTable>
-            ))}
-          </Table>
-        </Section>
-        <Section>
-          <H2Title
-            title="Invite by email"
-            description="Send an invite email to your team"
-          />
-          <WorkspaceInviteTeam />
-          {isNonEmptyArray(workspaceInvitations) && (
-            <Table>
-              <StyledTableHeaderRow>
-                <TableRow
-                  gridAutoColumns="150px 1fr 1fr"
-                  mobileGridAutoColumns="100px 1fr 1fr"
-                >
-                  <TableHeader>Email</TableHeader>
-                  <TableHeader align={'right'}>Expires in</TableHeader>
-                  <TableHeader></TableHeader>
-                </TableRow>
-              </StyledTableHeaderRow>
-              {workspaceInvitations?.map((workspaceInvitation) => (
-                <StyledTable key={workspaceInvitation.id}>
+              <StyledTableRows>
+                {workspaceInvitations?.map((workspaceInvitation) => (
                   <TableRow
                     gridAutoColumns="150px 1fr 1fr"
                     mobileGridAutoColumns="100px 1fr 1fr"
+                    key={workspaceInvitation.id}
                   >
                     <TableCell>
                       <StyledIconWrapper>
@@ -299,27 +364,27 @@ export const SettingsWorkspaceMembers = () => {
                       </StyledButtonContainer>
                     </TableCell>
                   </TableRow>
-                </StyledTable>
-              ))}
-            </Table>
+                ))}
+              </StyledTableRows>
+            </StyledTable>
           )}
         </Section>
       </SettingsPageContainer>
       <ConfirmationModal
         isOpen={isConfirmationModalOpen}
         setIsOpen={setIsConfirmationModalOpen}
-        title="Account Deletion"
+        title={t`Account Deletion`}
         subtitle={
-          <>
+          <Trans>
             This action cannot be undone. This will permanently delete this user
-            and remove them from all their assignements.
-          </>
+            and remove them from all their assignments.
+          </Trans>
         }
         onConfirmClick={() =>
           workspaceMemberToDelete &&
           handleRemoveWorkspaceMember(workspaceMemberToDelete)
         }
-        deleteButtonText="Delete account"
+        confirmButtonText={t`Delete account`}
       />
     </SubMenuTopBarContainer>
   );

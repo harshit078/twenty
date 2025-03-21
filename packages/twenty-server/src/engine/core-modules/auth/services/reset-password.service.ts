@@ -3,10 +3,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import crypto from 'crypto';
 
+import { i18n } from '@lingui/core';
+import { t } from '@lingui/core/macro';
 import { render } from '@react-email/render';
 import { addMilliseconds, differenceInMilliseconds } from 'date-fns';
 import ms from 'ms';
 import { PasswordResetLinkEmail } from 'twenty-emails';
+import { APP_LOCALES } from 'twenty-shared';
 import { IsNull, MoreThan, Repository } from 'typeorm';
 
 import {
@@ -21,22 +24,31 @@ import { EmailPasswordResetLink } from 'src/engine/core-modules/auth/dto/email-p
 import { InvalidatePassword } from 'src/engine/core-modules/auth/dto/invalidate-password.entity';
 import { PasswordResetToken } from 'src/engine/core-modules/auth/dto/token.entity';
 import { ValidatePasswordResetToken } from 'src/engine/core-modules/auth/dto/validate-password-reset-token.entity';
+import { DomainManagerService } from 'src/engine/core-modules/domain-manager/services/domain-manager.service';
 import { EmailService } from 'src/engine/core-modules/email/email.service';
 import { EnvironmentService } from 'src/engine/core-modules/environment/environment.service';
 import { User } from 'src/engine/core-modules/user/user.entity';
+import { Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
+import { workspaceValidator } from 'src/engine/core-modules/workspace/workspace.validate';
 
 @Injectable()
 export class ResetPasswordService {
   constructor(
     private readonly environmentService: EnvironmentService,
+    private readonly domainManagerService: DomainManagerService,
     @InjectRepository(User, 'core')
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Workspace, 'core')
+    private readonly workspaceRepository: Repository<Workspace>,
     @InjectRepository(AppToken, 'core')
     private readonly appTokenRepository: Repository<AppToken>,
     private readonly emailService: EmailService,
   ) {}
 
-  async generatePasswordResetToken(email: string): Promise<PasswordResetToken> {
+  async generatePasswordResetToken(
+    email: string,
+    workspaceId: string,
+  ): Promise<PasswordResetToken> {
     const user = await this.userRepository.findOneBy({
       email,
     });
@@ -90,12 +102,14 @@ export class ResetPasswordService {
 
     await this.appTokenRepository.save({
       userId: user.id,
+      workspaceId: workspaceId,
       value: hashedResetToken,
       expiresAt,
       type: AppTokenType.PasswordResetToken,
     });
 
     return {
+      workspaceId,
       passwordResetToken: plainResetToken,
       passwordResetTokenExpiresAt: expiresAt,
     };
@@ -104,6 +118,7 @@ export class ResetPasswordService {
   async sendEmailPasswordResetLink(
     resetToken: PasswordResetToken,
     email: string,
+    locale: keyof typeof APP_LOCALES,
   ): Promise<EmailPasswordResetLink> {
     const user = await this.userRepository.findOneBy({
       email,
@@ -116,11 +131,19 @@ export class ResetPasswordService {
       );
     }
 
-    const frontBaseURL = this.environmentService.get('FRONT_BASE_URL');
-    const resetLink = `${frontBaseURL}/reset-password/${resetToken.passwordResetToken}`;
+    const workspace = await this.workspaceRepository.findOneBy({
+      id: resetToken.workspaceId,
+    });
+
+    workspaceValidator.assertIsDefinedOrThrow(workspace);
+
+    const link = this.domainManagerService.buildWorkspaceURL({
+      workspace,
+      pathname: `/reset-password/${resetToken.passwordResetToken}`,
+    });
 
     const emailData = {
-      link: resetLink,
+      link: link.toString(),
       duration: ms(
         differenceInMilliseconds(
           resetToken.passwordResetTokenExpiresAt,
@@ -130,23 +153,22 @@ export class ResetPasswordService {
           long: true,
         },
       ),
+      locale,
     };
 
     const emailTemplate = PasswordResetLinkEmail(emailData);
-    const html = render(emailTemplate, {
-      pretty: true,
-    });
 
-    const text = render(emailTemplate, {
-      plainText: true,
-    });
+    const html = render(emailTemplate, { pretty: true });
+    const text = render(emailTemplate, { plainText: true });
+
+    i18n.activate(locale);
 
     this.emailService.send({
       from: `${this.environmentService.get(
         'EMAIL_FROM_NAME',
       )} <${this.environmentService.get('EMAIL_FROM_ADDRESS')}>`,
       to: email,
-      subject: 'Action Needed to Reset Password',
+      subject: t`Action Needed to Reset Password`,
       text,
       html,
     });

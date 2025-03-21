@@ -3,9 +3,6 @@ import styled from '@emotion/styled';
 import { ReactNode } from 'react';
 import { useRecoilValue } from 'recoil';
 import {
-  IconButton,
-  IconChevronDown,
-  IconChevronUp,
   IconComponent,
   IconX,
   LightIconButton,
@@ -32,9 +29,9 @@ const StyledTopBarContainer = styled.div`
   padding: ${({ theme }) => theme.spacing(2)};
   padding-left: 0;
   padding-right: ${({ theme }) => theme.spacing(3)};
+  gap: ${({ theme }) => theme.spacing(2)};
 
   @media (max-width: ${MOBILE_VIEWPORT}px) {
-    width: 100%;
     box-sizing: border-box;
     padding: ${({ theme }) => theme.spacing(3)};
   }
@@ -46,8 +43,8 @@ const StyledLeftContainer = styled.div`
   flex-direction: row;
   gap: ${({ theme }) => theme.spacing(1)};
   padding-left: ${({ theme }) => theme.spacing(1)};
+  overflow-x: hidden;
   width: 100%;
-
   @media (max-width: ${MOBILE_VIEWPORT}px) {
     padding-left: ${({ theme }) => theme.spacing(1)};
   }
@@ -59,20 +56,22 @@ const StyledTitleContainer = styled.div`
   font-weight: ${({ theme }) => theme.font.weight.medium};
   margin-left: ${({ theme }) => theme.spacing(1)};
   width: 100%;
+  overflow: hidden;
 `;
 
 const StyledTopBarIconStyledTitleContainer = styled.div`
   align-items: center;
   display: flex;
-  flex: 1 0 auto;
   gap: ${({ theme }) => theme.spacing(1)};
   flex-direction: row;
   width: 100%;
+  overflow: hidden;
 `;
 
 const StyledPageActionContainer = styled.div`
   display: inline-flex;
   gap: ${({ theme }) => theme.spacing(2)};
+  flex: 1 0 1;
 `;
 
 const StyledTopBarButtonContainer = styled.div`
@@ -80,15 +79,16 @@ const StyledTopBarButtonContainer = styled.div`
   margin-right: ${({ theme }) => theme.spacing(1)};
 `;
 
+const StyledIconContainer = styled.div`
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+`;
+
 type PageHeaderProps = {
   title?: ReactNode;
   hasClosePageButton?: boolean;
   onClosePage?: () => void;
-  hasPaginationButtons?: boolean;
-  hasPreviousRecord?: boolean;
-  hasNextRecord?: boolean;
-  navigateToPreviousRecord?: () => void;
-  navigateToNextRecord?: () => void;
   Icon?: IconComponent;
   children?: ReactNode;
 };
@@ -97,11 +97,6 @@ export const PageHeader = ({
   title,
   hasClosePageButton,
   onClosePage,
-  hasPaginationButtons,
-  hasPreviousRecord,
-  hasNextRecord,
-  navigateToPreviousRecord,
-  navigateToNextRecord,
   Icon,
   children,
 }: PageHeaderProps) => {
@@ -129,25 +124,11 @@ export const PageHeader = ({
         )}
 
         <StyledTopBarIconStyledTitleContainer>
-          {hasPaginationButtons && (
-            <>
-              <IconButton
-                Icon={IconChevronUp}
-                size="small"
-                variant="secondary"
-                disabled={!hasPreviousRecord}
-                onClick={() => navigateToPreviousRecord?.()}
-              />
-              <IconButton
-                Icon={IconChevronDown}
-                size="small"
-                variant="secondary"
-                disabled={!hasNextRecord}
-                onClick={() => navigateToNextRecord?.()}
-              />
-            </>
+          {Icon && (
+            <StyledIconContainer>
+              <Icon size={theme.icon.size.md} />
+            </StyledIconContainer>
           )}
-          {Icon && <Icon size={theme.icon.size.md} />}
           {title && (
             <StyledTitleContainer data-testid="top-bar-title">
               {typeof title === 'string' ? (
@@ -159,7 +140,10 @@ export const PageHeader = ({
           )}
         </StyledTopBarIconStyledTitleContainer>
       </StyledLeftContainer>
-      <StyledPageActionContainer>{children}</StyledPageActionContainer>
+
+      <StyledPageActionContainer className="page-action-container">
+        {children}
+      </StyledPageActionContainer>
     </StyledTopBarContainer>
   );
 };

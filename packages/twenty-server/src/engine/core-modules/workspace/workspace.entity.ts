@@ -1,9 +1,11 @@
 import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
 
-import { IDField, UnPagedRelation } from '@ptc-org/nestjs-query-graphql';
+import { IDField } from '@ptc-org/nestjs-query-graphql';
+import { WorkspaceActivationStatus } from 'twenty-shared';
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -13,39 +15,25 @@ import {
 
 import { UUIDScalarType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/scalars';
 import { AppToken } from 'src/engine/core-modules/app-token/app-token.entity';
-import { BillingSubscription } from 'src/engine/core-modules/billing/entities/billing-subscription.entity';
-import { FeatureFlagEntity } from 'src/engine/core-modules/feature-flag/feature-flag.entity';
+import { ApprovedAccessDomain } from 'src/engine/core-modules/approved-access-domain/approved-access-domain.entity';
+import { FeatureFlag } from 'src/engine/core-modules/feature-flag/feature-flag.entity';
 import { KeyValuePair } from 'src/engine/core-modules/key-value-pair/key-value-pair.entity';
 import { PostgresCredentials } from 'src/engine/core-modules/postgres-credentials/postgres-credentials.entity';
-import { UserWorkspace } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
-import { User } from 'src/engine/core-modules/user/user.entity';
 import { WorkspaceSSOIdentityProvider } from 'src/engine/core-modules/sso/workspace-sso-identity-provider.entity';
-
-export enum WorkspaceActivationStatus {
-  ONGOING_CREATION = 'ONGOING_CREATION',
-  PENDING_CREATION = 'PENDING_CREATION',
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-}
+import { UserWorkspace } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
+import { RoleDTO } from 'src/engine/metadata-modules/role/dtos/role.dto';
 
 registerEnumType(WorkspaceActivationStatus, {
   name: 'WorkspaceActivationStatus',
 });
 
 @Entity({ name: 'workspace', schema: 'core' })
-@ObjectType('Workspace')
-@UnPagedRelation('featureFlags', () => FeatureFlagEntity, { nullable: true })
-@UnPagedRelation('billingSubscriptions', () => BillingSubscription, {
-  nullable: true,
-})
+@ObjectType()
 export class Workspace {
+  // Fields
   @IDField(() => UUIDScalarType)
   @PrimaryGeneratedColumn('uuid')
   id: string;
-
-  @Field({ nullable: true })
-  @Column({ nullable: true })
-  domainName?: string;
 
   @Field({ nullable: true })
   @Column({ nullable: true })
@@ -60,7 +48,7 @@ export class Workspace {
   inviteHash?: string;
 
   @Field({ nullable: true })
-  @Column({ nullable: true, type: 'timestamptz' })
+  @DeleteDateColumn({ type: 'timestamptz' })
   deletedAt?: Date;
 
   @Field()
@@ -71,6 +59,15 @@ export class Workspace {
   @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 
+  @Field()
+  @Column({ default: true })
+  allowImpersonation: boolean;
+
+  @Field()
+  @Column({ default: true })
+  isPublicInviteLinkEnabled: boolean;
+
+  // Relations
   @OneToMany(() => AppToken, (appToken) => appToken.workspace, {
     cascade: true,
   })
@@ -81,24 +78,19 @@ export class Workspace {
   })
   keyValuePairs: Relation<KeyValuePair[]>;
 
-  @OneToMany(() => User, (user) => user.defaultWorkspace)
-  users: Relation<User[]>;
-
   @OneToMany(() => UserWorkspace, (userWorkspace) => userWorkspace.workspace, {
     onDelete: 'CASCADE',
   })
   workspaceUsers: Relation<UserWorkspace[]>;
 
-  @Field()
-  @Column({ default: true })
-  allowImpersonation: boolean;
+  @OneToMany(() => FeatureFlag, (featureFlag) => featureFlag.workspace)
+  featureFlags: Relation<FeatureFlag[]>;
 
-  @Field()
-  @Column({ default: true })
-  isPublicInviteLinkEnabled: boolean;
-
-  @OneToMany(() => FeatureFlagEntity, (featureFlag) => featureFlag.workspace)
-  featureFlags: Relation<FeatureFlagEntity[]>;
+  @OneToMany(
+    () => ApprovedAccessDomain,
+    (approvedAccessDomain) => approvedAccessDomain.workspace,
+  )
+  approvedAccessDomains: Relation<ApprovedAccessDomain[]>;
 
   @Field({ nullable: true })
   workspaceMembersCount: number;
@@ -106,16 +98,11 @@ export class Workspace {
   @Field(() => WorkspaceActivationStatus)
   @Column({
     type: 'enum',
+    enumName: 'workspace_activationStatus_enum',
     enum: WorkspaceActivationStatus,
     default: WorkspaceActivationStatus.INACTIVE,
   })
   activationStatus: WorkspaceActivationStatus;
-
-  @OneToMany(
-    () => BillingSubscription,
-    (billingSubscription) => billingSubscription.workspace,
-  )
-  billingSubscriptions: Relation<BillingSubscription[]>;
 
   @OneToMany(
     () => PostgresCredentials,
@@ -140,4 +127,38 @@ export class Workspace {
   @Field()
   @Column({ default: '' })
   databaseSchema: string;
+
+  @Field()
+  @Column({ unique: true })
+  subdomain: string;
+
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'varchar', unique: true, nullable: true })
+  customDomain: string | null;
+
+  @Field()
+  @Column({ default: true })
+  isGoogleAuthEnabled: boolean;
+
+  @Field()
+  @Column({ default: true })
+  isPasswordAuthEnabled: boolean;
+
+  @Field()
+  @Column({ default: true })
+  isMicrosoftAuthEnabled: boolean;
+
+  @Field()
+  @Column({ default: false })
+  isCustomDomainEnabled: boolean;
+
+  @Column({ nullable: true, type: 'uuid' })
+  defaultRoleId: string | null;
+
+  @Field(() => RoleDTO, { nullable: true })
+  defaultRole: RoleDTO | null;
+
+  @Field(() => String, { nullable: true })
+  @Column({ type: 'varchar', nullable: true })
+  version: string | null;
 }

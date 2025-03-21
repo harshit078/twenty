@@ -1,6 +1,7 @@
 export enum AppPath {
   // Not logged-in
   Verify = '/verify',
+  VerifyEmail = '/verify-email',
   SignInUp = '/welcome',
   Invite = '/invite/:workspaceInviteHash',
   ResetPassword = '/reset-password/:passwordResetToken',
@@ -25,9 +26,6 @@ export enum AppPath {
   SettingsCatchAll = `/${Settings}/*`,
   Developers = `developers`,
   DevelopersCatchAll = `/${Developers}/*`,
-
-  // Impersonate
-  Impersonate = '/impersonate/:userId',
 
   Authorize = '/authorize',
 

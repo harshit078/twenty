@@ -1,54 +1,48 @@
-import { GlobalActionMenuEntriesSetter } from '@/action-menu/actions/global-actions/components/GlobalActionMenuEntriesSetter';
 import { RecordActionMenuEntriesSetter } from '@/action-menu/actions/record-actions/components/RecordActionMenuEntriesSetter';
+import { RecordAgnosticActionMenuEntriesSetter } from '@/action-menu/actions/record-agnostic-actions/components/RecordAgnosticActionMenuEntriesSetter';
+import { RunWorkflowRecordAgnosticActionMenuEntriesSetter } from '@/action-menu/actions/record-agnostic-actions/components/RunWorkflowRecordAgnosticActionMenuEntriesSetter';
 import { ActionMenuConfirmationModals } from '@/action-menu/components/ActionMenuConfirmationModals';
+import { RecordShowActionMenuButtons } from '@/action-menu/components/RecordShowActionMenuButtons';
 import { ActionMenuContext } from '@/action-menu/contexts/ActionMenuContext';
-
-import { contextStoreCurrentObjectMetadataIdComponentState } from '@/context-store/states/contextStoreCurrentObjectMetadataIdComponentState';
-import { ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
-import { ObjectRecord } from '@/object-record/types/ObjectRecord';
+import { contextStoreCurrentObjectMetadataItemIdComponentState } from '@/context-store/states/contextStoreCurrentObjectMetadataItemIdComponentState';
+import { contextStoreTargetedRecordsRuleComponentState } from '@/context-store/states/contextStoreTargetedRecordsRuleComponentState';
 import { useRecoilComponentValueV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValueV2';
-import { RecordShowPageBaseHeader } from '~/pages/object-record/RecordShowPageBaseHeader';
+import { useIsFeatureEnabled } from '@/workspace/hooks/useIsFeatureEnabled';
+import { FeatureFlagKey } from '~/generated/graphql';
 
-export const RecordShowActionMenu = ({
-  isFavorite,
-  handleFavoriteButtonClick,
-  record,
-  objectMetadataItem,
-  objectNameSingular,
-}: {
-  isFavorite: boolean;
-  handleFavoriteButtonClick: () => void;
-  record: ObjectRecord | undefined;
-  objectMetadataItem: ObjectMetadataItem;
-  objectNameSingular: string;
-}) => {
-  const contextStoreCurrentObjectMetadataId = useRecoilComponentValueV2(
-    contextStoreCurrentObjectMetadataIdComponentState,
+export const RecordShowActionMenu = () => {
+  const contextStoreCurrentObjectMetadataItemId = useRecoilComponentValueV2(
+    contextStoreCurrentObjectMetadataItemIdComponentState,
   );
 
-  // TODO: refactor RecordShowPageBaseHeader to use the context store
+  const contextStoreTargetedRecordsRule = useRecoilComponentValueV2(
+    contextStoreTargetedRecordsRuleComponentState,
+  );
+
+  const hasSelectedRecord =
+    contextStoreTargetedRecordsRule.mode === 'selection' &&
+    contextStoreTargetedRecordsRule.selectedRecordIds.length === 1;
+
+  const isWorkflowEnabled = useIsFeatureEnabled(
+    FeatureFlagKey.IsWorkflowEnabled,
+  );
 
   return (
     <>
-      {contextStoreCurrentObjectMetadataId && (
+      {hasSelectedRecord && contextStoreCurrentObjectMetadataItemId && (
         <ActionMenuContext.Provider
           value={{
             isInRightDrawer: false,
             onActionExecutedCallback: () => {},
           }}
         >
-          <RecordShowPageBaseHeader
-            {...{
-              isFavorite,
-              handleFavoriteButtonClick,
-              record,
-              objectMetadataItem,
-              objectNameSingular,
-            }}
-          />
+          <RecordShowActionMenuButtons />
           <ActionMenuConfirmationModals />
           <RecordActionMenuEntriesSetter />
-          <GlobalActionMenuEntriesSetter />
+          <RecordAgnosticActionMenuEntriesSetter />
+          {isWorkflowEnabled && (
+            <RunWorkflowRecordAgnosticActionMenuEntriesSetter />
+          )}
         </ActionMenuContext.Provider>
       )}
     </>

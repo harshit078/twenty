@@ -1,6 +1,8 @@
 import { AppRouterProviders } from '@/app/components/AppRouterProviders';
 import { SettingsRoutes } from '@/app/components/SettingsRoutes';
+
 import { VerifyEffect } from '@/auth/components/VerifyEffect';
+import { VerifyEmailEffect } from '@/auth/components/VerifyEmailEffect';
 import indexAppPath from '@/navigation/utils/indexAppPath';
 import { AppPath } from '@/types/AppPath';
 import { BlankLayout } from '@/ui/layout/page/components/BlankLayout';
@@ -11,10 +13,8 @@ import {
   Route,
 } from 'react-router-dom';
 import { Authorize } from '~/pages/auth/Authorize';
-import { Invite } from '~/pages/auth/Invite';
 import { PasswordReset } from '~/pages/auth/PasswordReset';
 import { SignInUp } from '~/pages/auth/SignInUp';
-import { ImpersonateEffect } from '~/pages/impersonate/ImpersonateEffect';
 import { NotFound } from '~/pages/not-found/NotFound';
 import { RecordIndexPage } from '~/pages/object-record/RecordIndexPage';
 import { RecordShowPage } from '~/pages/object-record/RecordShowPage';
@@ -26,10 +26,8 @@ import { PaymentSuccess } from '~/pages/onboarding/PaymentSuccess';
 import { SyncEmails } from '~/pages/onboarding/SyncEmails';
 
 export const useCreateAppRouter = (
-  isBillingEnabled?: boolean,
-  isCRMMigrationEnabled?: boolean,
-  isServerlessFunctionSettingsEnabled?: boolean,
-  isSSOEnabled?: boolean,
+  isFunctionSettingsEnabled?: boolean,
+  isAdminPageEnabled?: boolean,
 ) =>
   createBrowserRouter(
     createRoutesFromElements(
@@ -41,8 +39,9 @@ export const useCreateAppRouter = (
       >
         <Route element={<DefaultLayout />}>
           <Route path={AppPath.Verify} element={<VerifyEffect />} />
+          <Route path={AppPath.VerifyEmail} element={<VerifyEmailEffect />} />
           <Route path={AppPath.SignInUp} element={<SignInUp />} />
-          <Route path={AppPath.Invite} element={<Invite />} />
+          <Route path={AppPath.Invite} element={<SignInUp />} />
           <Route path={AppPath.ResetPassword} element={<PasswordReset />} />
           <Route path={AppPath.CreateWorkspace} element={<CreateWorkspace />} />
           <Route path={AppPath.CreateProfile} element={<CreateProfile />} />
@@ -54,19 +53,14 @@ export const useCreateAppRouter = (
             element={<PaymentSuccess />}
           />
           <Route path={indexAppPath.getIndexAppPath()} element={<></>} />
-          <Route path={AppPath.Impersonate} element={<ImpersonateEffect />} />
           <Route path={AppPath.RecordIndexPage} element={<RecordIndexPage />} />
           <Route path={AppPath.RecordShowPage} element={<RecordShowPage />} />
           <Route
             path={AppPath.SettingsCatchAll}
             element={
               <SettingsRoutes
-                isBillingEnabled={isBillingEnabled}
-                isCRMMigrationEnabled={isCRMMigrationEnabled}
-                isServerlessFunctionSettingsEnabled={
-                  isServerlessFunctionSettingsEnabled
-                }
-                isSSOEnabled={isSSOEnabled}
+                isFunctionSettingsEnabled={isFunctionSettingsEnabled}
+                isAdminPageEnabled={isAdminPageEnabled}
               />
             }
           />

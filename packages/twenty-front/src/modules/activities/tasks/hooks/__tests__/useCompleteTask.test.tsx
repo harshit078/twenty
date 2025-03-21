@@ -10,7 +10,10 @@ const task: Task = {
   id: '123',
   status: 'DONE',
   title: 'Test',
-  body: 'Test',
+  bodyV2: {
+    blocknote: 'Test',
+    markdown: 'Test',
+  },
   dueAt: '2024-03-15T07:33:14.212Z',
   createdAt: '2024-03-15T07:33:14.212Z',
   updatedAt: '2024-03-15T07:33:14.212Z',
@@ -61,7 +64,8 @@ const mocks: MockedResponse[] = [
                   noteId
                   opportunityId
                   personId
-                  rocketId
+                  petId
+                  surveyResultId
                   taskId
                   type
                   updatedAt
@@ -74,6 +78,7 @@ const mocks: MockedResponse[] = [
               source
               workspaceMemberId
               name
+              context
             }
             deletedAt
             dueAt
@@ -84,19 +89,21 @@ const mocks: MockedResponse[] = [
                   companyId
                   createdAt
                   deletedAt
+                  favoriteFolderId
+                  forWorkspaceMemberId
                   id
                   noteId
                   opportunityId
                   personId
+                  petId
                   position
-                  rocketId
+                  surveyResultId
                   taskId
                   updatedAt
                   viewId
                   workflowId
                   workflowRunId
                   workflowVersionId
-                  workspaceMemberId
                 }
               }
             }
@@ -113,7 +120,8 @@ const mocks: MockedResponse[] = [
                   id
                   opportunityId
                   personId
-                  rocketId
+                  petId
+                  surveyResultId
                   taskId
                   updatedAt
                 }
@@ -135,8 +143,9 @@ const mocks: MockedResponse[] = [
                   noteId
                   opportunityId
                   personId
+                  petId
                   properties
-                  rocketId
+                  surveyResultId
                   taskId
                   updatedAt
                   workflowId

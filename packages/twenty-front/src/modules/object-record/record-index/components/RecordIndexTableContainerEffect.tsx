@@ -1,31 +1,25 @@
-import { useContext, useEffect } from 'react';
+import { useEffect } from 'react';
 
-import { contextStoreTargetedRecordsRuleComponentState } from '@/context-store/states/contextStoreTargetedRecordsRuleComponentState';
 import { useColumnDefinitionsFromFieldMetadata } from '@/object-metadata/hooks/useColumnDefinitionsFromFieldMetadata';
 import { useObjectMetadataItem } from '@/object-metadata/hooks/useObjectMetadataItem';
-import { RecordIndexRootPropsContext } from '@/object-record/record-index/contexts/RecordIndexRootPropsContext';
+import { useRecordIndexContextOrThrow } from '@/object-record/record-index/contexts/RecordIndexContext';
 import { useHandleToggleColumnFilter } from '@/object-record/record-index/hooks/useHandleToggleColumnFilter';
 import { useHandleToggleColumnSort } from '@/object-record/record-index/hooks/useHandleToggleColumnSort';
-import { recordIndexFiltersState } from '@/object-record/record-index/states/recordIndexFiltersState';
 import { useRecordTable } from '@/object-record/record-table/hooks/useRecordTable';
-import { hasUserSelectedAllRowsComponentState } from '@/object-record/record-table/record-table-row/states/hasUserSelectedAllRowsFamilyState';
-import { selectedRowIdsComponentSelector } from '@/object-record/record-table/states/selectors/selectedRowIdsComponentSelector';
-import { unselectedRowIdsComponentSelector } from '@/object-record/record-table/states/selectors/unselectedRowIdsComponentSelector';
-import { useRecoilComponentValueV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValueV2';
-import { useSetRecoilComponentStateV2 } from '@/ui/utilities/state/component-state/hooks/useSetRecoilComponentStateV2';
-import { useSetRecordCountInCurrentView } from '@/views/hooks/useSetRecordCountInCurrentView';
-import { useRecoilValue } from 'recoil';
+import { viewFieldAggregateOperationState } from '@/object-record/record-table/record-table-footer/states/viewFieldAggregateOperationState';
+import { convertAggregateOperationToExtendedAggregateOperation } from '@/object-record/utils/convertAggregateOperationToExtendedAggregateOperation';
+import { useGetCurrentViewOnly } from '@/views/hooks/useGetCurrentViewOnly';
+import { ViewField } from '@/views/types/ViewField';
+import { useRecoilCallback } from 'recoil';
+import { isDefined } from 'twenty-shared';
 
 export const RecordIndexTableContainerEffect = () => {
-  const { recordIndexId, objectNameSingular } = useContext(
-    RecordIndexRootPropsContext,
-  );
+  const { recordIndexId, objectNameSingular } = useRecordIndexContextOrThrow();
 
   const viewBarId = recordIndexId;
 
   const {
     setAvailableTableColumns,
-    setOnEntityCountChange,
     setOnToggleColumnFilter,
     setOnToggleColumnSort,
   } = useRecordTable({
@@ -39,9 +33,6 @@ export const RecordIndexTableContainerEffect = () => {
   const { columnDefinitions } =
     useColumnDefinitionsFromFieldMetadata(objectMetadataItem);
 
-  const { setRecordCountInCurrentView } =
-    useSetRecordCountInCurrentView(viewBarId);
-
   useEffect(() => {
     setAvailableTableColumns(columnDefinitions);
   }, [columnDefinitions, setAvailableTableColumns]);
@@ -53,8 +44,9 @@ export const RecordIndexTableContainerEffect = () => {
 
   const handleToggleColumnSort = useHandleToggleColumnSort({
     objectNameSingular,
-    viewBarId,
   });
+
+  const { currentView } = useGetCurrentViewOnly();
 
   useEffect(() => {
     setOnToggleColumnFilter(
@@ -70,57 +62,51 @@ export const RecordIndexTableContainerEffect = () => {
     );
   }, [setOnToggleColumnSort, handleToggleColumnSort]);
 
+  const setViewFieldAggregateOperation = useRecoilCallback(
+    ({ set, snapshot }) =>
+      (viewField: ViewField) => {
+        const aggregateOperationForViewField = snapshot
+          .getLoadable(
+            viewFieldAggregateOperationState({
+              viewFieldId: viewField.id,
+            }),
+          )
+          .getValue();
+
+        const viewFieldMetadataType = columnDefinitions.find(
+          (columnDefinition) =>
+            columnDefinition.fieldMetadataId === viewField.fieldMetadataId,
+        )?.type;
+
+        const convertedViewFieldAggregateOperation = isDefined(
+          viewField.aggregateOperation,
+        )
+          ? convertAggregateOperationToExtendedAggregateOperation(
+              viewField.aggregateOperation,
+              viewFieldMetadataType,
+            )
+          : viewField.aggregateOperation;
+
+        if (
+          aggregateOperationForViewField !==
+          convertedViewFieldAggregateOperation
+        ) {
+          set(
+            viewFieldAggregateOperationState({
+              viewFieldId: viewField.id,
+            }),
+            convertedViewFieldAggregateOperation,
+          );
+        }
+      },
+    [columnDefinitions],
+  );
+
   useEffect(() => {
-    setOnEntityCountChange(
-      () => (entityCount: number) => setRecordCountInCurrentView(entityCount),
-    );
-  }, [setRecordCountInCurrentView, setOnEntityCountChange]);
-
-  const setContextStoreTargetedRecords = useSetRecoilComponentStateV2(
-    contextStoreTargetedRecordsRuleComponentState,
-  );
-  const hasUserSelectedAllRows = useRecoilComponentValueV2(
-    hasUserSelectedAllRowsComponentState,
-    recordIndexId,
-  );
-  const selectedRowIds = useRecoilComponentValueV2(
-    selectedRowIdsComponentSelector,
-    recordIndexId,
-  );
-  const unselectedRowIds = useRecoilComponentValueV2(
-    unselectedRowIdsComponentSelector,
-    recordIndexId,
-  );
-
-  const recordIndexFilters = useRecoilValue(recordIndexFiltersState);
-
-  useEffect(() => {
-    if (hasUserSelectedAllRows) {
-      setContextStoreTargetedRecords({
-        mode: 'exclusion',
-        excludedRecordIds: unselectedRowIds,
-        filters: recordIndexFilters,
-      });
-    } else {
-      setContextStoreTargetedRecords({
-        mode: 'selection',
-        selectedRecordIds: selectedRowIds,
-      });
-    }
-
-    return () => {
-      setContextStoreTargetedRecords({
-        mode: 'selection',
-        selectedRecordIds: [],
-      });
-    };
-  }, [
-    hasUserSelectedAllRows,
-    recordIndexFilters,
-    selectedRowIds,
-    setContextStoreTargetedRecords,
-    unselectedRowIds,
-  ]);
+    currentView?.viewFields.forEach((viewField) => {
+      setViewFieldAggregateOperation(viewField);
+    });
+  }, [currentView, setViewFieldAggregateOperation]);
 
   return <></>;
 };

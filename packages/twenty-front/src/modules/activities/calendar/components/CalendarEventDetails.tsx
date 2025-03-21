@@ -1,4 +1,3 @@
-import React from 'react';
 import { css, useTheme } from '@emotion/react';
 import styled from '@emotion/styled';
 import {
@@ -15,6 +14,7 @@ import { useObjectMetadataItem } from '@/object-metadata/hooks/useObjectMetadata
 import { CoreObjectNameSingular } from '@/object-metadata/types/CoreObjectNameSingular';
 import { formatFieldMetadataItemAsFieldDefinition } from '@/object-metadata/utils/formatFieldMetadataItemAsFieldDefinition';
 import { FieldContext } from '@/object-record/record-field/contexts/FieldContext';
+import { RecordFieldComponentInstanceContext } from '@/object-record/record-field/states/contexts/RecordFieldComponentInstanceContext';
 import { RecordInlineCell } from '@/object-record/record-inline-cell/components/RecordInlineCell';
 import { PropertyBox } from '@/object-record/record-inline-cell/property-box/components/PropertyBox';
 import { mapArrayToObject } from '~/utils/array/mapArrayToObject';
@@ -114,7 +114,13 @@ export const CalendarEventDetails = ({
           maxWidth: 300,
         }}
       >
-        <RecordInlineCell readonly />
+        <RecordFieldComponentInstanceContext.Provider
+          value={{
+            instanceId: `${calendarEvent.id}-${fieldName}`,
+          }}
+        >
+          <RecordInlineCell readonly />
+        </RecordFieldComponentInstanceContext.Provider>
       </FieldContext.Provider>
     </StyledPropertyBox>
   ));
@@ -126,7 +132,7 @@ export const CalendarEventDetails = ({
         size={ChipSize.Large}
         variant={ChipVariant.Highlighted}
         clickable={false}
-        leftComponent={<IconCalendarEvent size={theme.icon.size.md} />}
+        leftComponent={() => <IconCalendarEvent size={theme.icon.size.md} />}
         label="Event"
       />
       <StyledHeader>

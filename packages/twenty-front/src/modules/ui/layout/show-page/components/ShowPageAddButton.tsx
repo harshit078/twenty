@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import { IconButton, IconCheckbox, IconNotes, IconPlus } from 'twenty-ui';
+import { Button, IconCheckbox, IconNotes, IconPlus, MenuItem } from 'twenty-ui';
 
 import { useOpenCreateActivityDrawer } from '@/activities/hooks/useOpenCreateActivityDrawer';
 import { ActivityTargetableObject } from '@/activities/types/ActivityTargetableEntity';
@@ -7,11 +7,11 @@ import { PageHotkeyScope } from '@/types/PageHotkeyScope';
 import { DropdownMenuItemsContainer } from '@/ui/layout/dropdown/components/DropdownMenuItemsContainer';
 import { useDropdown } from '@/ui/layout/dropdown/hooks/useDropdown';
 import { SHOW_PAGE_ADD_BUTTON_DROPDOWN_ID } from '@/ui/layout/show-page/constants/ShowPageAddButtonDropdownId';
-import { MenuItem } from '@/ui/navigation/menu-item/components/MenuItem';
 
 import { CoreObjectNameSingular } from '@/object-metadata/types/CoreObjectNameSingular';
+import { isWorkflowSubObjectMetadata } from '@/object-metadata/utils/isWorkflowSubObjectMetadata';
+import { useHasObjectReadOnlyPermission } from '@/settings/roles/hooks/useHasObjectReadOnlyPermission';
 import { Dropdown } from '../../dropdown/components/Dropdown';
-import { DropdownMenu } from '../../dropdown/components/DropdownMenu';
 
 const StyledContainer = styled.div`
   z-index: 1;
@@ -22,7 +22,8 @@ export const ShowPageAddButton = ({
 }: {
   activityTargetObject: ActivityTargetableObject;
 }) => {
-  const { closeDropdown, toggleDropdown } = useDropdown('add-show-page');
+  const { closeDropdown } = useDropdown(SHOW_PAGE_ADD_BUTTON_DROPDOWN_ID);
+
   const openNote = useOpenCreateActivityDrawer({
     activityObjectNameSingular: CoreObjectNameSingular.Note,
   });
@@ -30,13 +31,14 @@ export const ShowPageAddButton = ({
     activityObjectNameSingular: CoreObjectNameSingular.Task,
   });
 
+  const hasObjectReadOnlyPermission = useHasObjectReadOnlyPermission();
+
   const handleSelect = (objectNameSingular: CoreObjectNameSingular) => {
     if (objectNameSingular === CoreObjectNameSingular.Note) {
       openNote({
         targetableObjects: [activityTargetObject],
       });
-    }
-    if (objectNameSingular === CoreObjectNameSingular.Task) {
+    } else if (objectNameSingular === CoreObjectNameSingular.Task) {
       openTask({
         targetableObjects: [activityTargetObject],
       });
@@ -49,9 +51,14 @@ export const ShowPageAddButton = ({
     activityTargetObject.targetObjectNameSingular ===
       CoreObjectNameSingular.Task ||
     activityTargetObject.targetObjectNameSingular ===
-      CoreObjectNameSingular.Note
+      CoreObjectNameSingular.Note ||
+    isWorkflowSubObjectMetadata(activityTargetObject.targetObjectNameSingular)
   ) {
     return;
+  }
+
+  if (hasObjectReadOnlyPermission) {
+    return null;
   }
 
   return (
@@ -59,36 +66,33 @@ export const ShowPageAddButton = ({
       <Dropdown
         dropdownId={SHOW_PAGE_ADD_BUTTON_DROPDOWN_ID}
         clickableComponent={
-          <IconButton
+          <Button
             Icon={IconPlus}
-            size="medium"
-            dataTestId="add-showpage-button"
-            accent="default"
+            dataTestId="add-button"
+            size="small"
             variant="secondary"
-            onClick={toggleDropdown}
+            accent="default"
+            title="New note/task"
+            ariaLabel="New note/task"
           />
         }
         dropdownComponents={
-          <DropdownMenu>
-            <DropdownMenuItemsContainer>
-              <MenuItem
-                onClick={() => handleSelect(CoreObjectNameSingular.Note)}
-                accent="default"
-                LeftIcon={IconNotes}
-                text="Note"
-              />
-              <MenuItem
-                onClick={() => handleSelect(CoreObjectNameSingular.Task)}
-                accent="default"
-                LeftIcon={IconCheckbox}
-                text="Task"
-              />
-            </DropdownMenuItemsContainer>
-          </DropdownMenu>
+          <DropdownMenuItemsContainer>
+            <MenuItem
+              onClick={() => handleSelect(CoreObjectNameSingular.Note)}
+              accent="default"
+              LeftIcon={IconNotes}
+              text="Note"
+            />
+            <MenuItem
+              onClick={() => handleSelect(CoreObjectNameSingular.Task)}
+              accent="default"
+              LeftIcon={IconCheckbox}
+              text="Task"
+            />
+          </DropdownMenuItemsContainer>
         }
-        dropdownHotkeyScope={{
-          scope: PageHotkeyScope.ShowPage,
-        }}
+        dropdownHotkeyScope={{ scope: PageHotkeyScope.ShowPage }}
       />
     </StyledContainer>
   );

@@ -6,7 +6,7 @@ const StyledRadioCardContent = styled(CardContent)`
   display: flex;
   align-items: center;
   padding: ${({ theme }) => theme.spacing(2)};
-  border: 1px solid ${({ theme }) => theme.border.color.light};
+  border: 1px solid ${({ theme }) => theme.border.color.medium};
   border-radius: ${({ theme }) => theme.border.radius.sm};
   flex-grow: 1;
   gap: ${({ theme }) => theme.spacing(2)};
@@ -34,16 +34,18 @@ const StyledDescription = styled.div`
 
 type SettingsRadioCardProps = {
   value: string;
-  handleClick: (value: string) => void;
+  handleSelect: (value: string) => void;
   isSelected: boolean;
   title: string;
   description?: string;
   Icon?: IconComponent;
+  role?: string;
+  ariaChecked?: boolean;
 };
 
 export const SettingsRadioCard = ({
   value,
-  handleClick,
+  handleSelect,
   title,
   description,
   isSelected,
@@ -51,8 +53,10 @@ export const SettingsRadioCard = ({
 }: SettingsRadioCardProps) => {
   const theme = useTheme();
 
+  const onClick = () => handleSelect(value);
+
   return (
-    <StyledRadioCardContent onClick={() => handleClick(value)}>
+    <StyledRadioCardContent tabIndex={0} onClick={onClick}>
       {Icon && <Icon size={theme.icon.size.xl} color={theme.color.gray50} />}
       <span>
         {title && <StyledTitle>{title}</StyledTitle>}

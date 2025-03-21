@@ -1,18 +1,16 @@
-import styled from '@emotion/styled';
-
-import { RelationPicker } from '@/object-record/relation-picker/components/RelationPicker';
-import { EntityForSelect } from '@/object-record/relation-picker/types/EntityForSelect';
-
 import { usePersistField } from '../../../hooks/usePersistField';
 import { useRelationField } from '../../hooks/useRelationField';
 
+import { useObjectMetadataItem } from '@/object-metadata/hooks/useObjectMetadataItem';
+import { useAddNewRecordAndOpenRightDrawer } from '@/object-record/record-field/meta-types/input/hooks/useAddNewRecordAndOpenRightDrawer';
+import { recordFieldInputLayoutDirectionComponentState } from '@/object-record/record-field/states/recordFieldInputLayoutDirectionComponentState';
+import { recordFieldInputLayoutDirectionLoadingComponentState } from '@/object-record/record-field/states/recordFieldInputLayoutDirectionLoadingComponentState';
+import { SingleRecordPicker } from '@/object-record/record-picker/single-record-picker/components/SingleRecordPicker';
+import { SingleRecordPickerRecord } from '@/object-record/record-picker/single-record-picker/types/SingleRecordPickerRecord';
+import { ObjectRecord } from '@/object-record/types/ObjectRecord';
+import { useRecoilComponentValueV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValueV2';
+import { IconForbid } from 'twenty-ui';
 import { FieldInputEvent } from './DateTimeFieldInput';
-
-const StyledRelationPickerContainer = styled.div`
-  left: -1px;
-  position: absolute;
-  top: -1px;
-`;
 
 export type RelationToOneFieldInputProps = {
   onSubmit?: FieldInputEvent;
@@ -23,24 +21,64 @@ export const RelationToOneFieldInput = ({
   onSubmit,
   onCancel,
 }: RelationToOneFieldInputProps) => {
-  const { fieldDefinition, initialSearchValue, fieldValue } =
-    useRelationField<EntityForSelect>();
+  const { fieldDefinition, recordId } = useRelationField<ObjectRecord>();
 
   const persistField = usePersistField();
 
-  const handleSubmit = (newEntity: EntityForSelect | null) => {
-    onSubmit?.(() => persistField(newEntity?.record ?? null));
-  };
+  const recordPickerInstanceId = `relation-to-one-field-input-${recordId}-${fieldDefinition.metadata.fieldName}`;
+
+  const handleRecordSelected = (
+    selectedRecord: SingleRecordPickerRecord | null | undefined,
+  ) => onSubmit?.(() => persistField(selectedRecord?.record ?? null));
+
+  const { objectMetadataItem: relationObjectMetadataItem } =
+    useObjectMetadataItem({
+      objectNameSingular:
+        fieldDefinition.metadata.relationObjectMetadataNameSingular,
+    });
+
+  const relationFieldMetadataItem = relationObjectMetadataItem.fields.find(
+    ({ id }) => id === fieldDefinition.metadata.relationFieldMetadataId,
+  );
+
+  const { createNewRecordAndOpenRightDrawer } =
+    useAddNewRecordAndOpenRightDrawer({
+      relationObjectMetadataNameSingular:
+        fieldDefinition.metadata.relationObjectMetadataNameSingular,
+      relationObjectMetadataItem,
+      relationFieldMetadataItem,
+      recordId,
+    });
+
+  const layoutDirection = useRecoilComponentValueV2(
+    recordFieldInputLayoutDirectionComponentState,
+  );
+
+  const isLoading = useRecoilComponentValueV2(
+    recordFieldInputLayoutDirectionLoadingComponentState,
+  );
+
+  if (isLoading) {
+    return <></>;
+  }
 
   return (
-    <StyledRelationPickerContainer>
-      <RelationPicker
-        fieldDefinition={fieldDefinition}
-        selectedRecordId={fieldValue?.id}
-        onSubmit={handleSubmit}
-        onCancel={onCancel}
-        initialSearchFilter={initialSearchValue}
-      />
-    </StyledRelationPickerContainer>
+    <SingleRecordPicker
+      componentInstanceId={recordPickerInstanceId}
+      EmptyIcon={IconForbid}
+      emptyLabel={'No ' + fieldDefinition.label}
+      onCancel={onCancel}
+      onCreate={createNewRecordAndOpenRightDrawer}
+      onRecordSelected={handleRecordSelected}
+      objectNameSingular={
+        fieldDefinition.metadata.relationObjectMetadataNameSingular
+      }
+      recordPickerInstanceId={recordPickerInstanceId}
+      layoutDirection={
+        layoutDirection === 'downward'
+          ? 'search-bar-on-top'
+          : 'search-bar-on-bottom'
+      }
+    />
   );
 };

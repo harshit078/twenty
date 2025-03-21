@@ -10,7 +10,8 @@ import { SettingsAccountsMessageChannelDetails } from '@/settings/accounts/compo
 import { SettingsNewAccountSection } from '@/settings/accounts/components/SettingsNewAccountSection';
 import { SETTINGS_ACCOUNT_MESSAGE_CHANNELS_TAB_LIST_COMPONENT_ID } from '@/settings/accounts/constants/SettingsAccountMessageChannelsTabListComponentId';
 import { TabList } from '@/ui/layout/tab/components/TabList';
-import { useTabList } from '@/ui/layout/tab/hooks/useTabList';
+import { activeTabIdComponentState } from '@/ui/layout/tab/states/activeTabIdComponentState';
+import { useRecoilComponentValueV2 } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValueV2';
 import React from 'react';
 
 const StyledMessageContainer = styled.div`
@@ -18,10 +19,10 @@ const StyledMessageContainer = styled.div`
 `;
 
 export const SettingsAccountsMessageChannelsContainer = () => {
-  const { activeTabIdState } = useTabList(
+  const activeTabId = useRecoilComponentValueV2(
+    activeTabIdComponentState,
     SETTINGS_ACCOUNT_MESSAGE_CHANNELS_TAB_LIST_COMPONENT_ID,
   );
-  const activeTabId = useRecoilValue(activeTabIdState);
   const currentWorkspaceMember = useRecoilValue(currentWorkspaceMemberState);
 
   const { records: accounts } = useFindManyRecords<ConnectedAccount>({
@@ -63,8 +64,10 @@ export const SettingsAccountsMessageChannelsContainer = () => {
       {tabs.length > 1 && (
         <StyledMessageContainer>
           <TabList
-            tabListId={SETTINGS_ACCOUNT_MESSAGE_CHANNELS_TAB_LIST_COMPONENT_ID}
             tabs={tabs}
+            componentInstanceId={
+              SETTINGS_ACCOUNT_MESSAGE_CHANNELS_TAB_LIST_COMPONENT_ID
+            }
           />
         </StyledMessageContainer>
       )}

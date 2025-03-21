@@ -13,6 +13,7 @@ import {
   GraphQLString,
   GraphQLType,
 } from 'graphql';
+import { FieldMetadataType } from 'twenty-shared';
 
 import { FieldMetadataSettings } from 'src/engine/metadata-modules/field-metadata/interfaces/field-metadata-settings.interface';
 
@@ -27,6 +28,9 @@ import {
   StringFilterType,
 } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/input';
 import { IDFilterType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/input/id-filter.input-type';
+import { MultiSelectFilterType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/input/multi-select-filter.input-type';
+import { RichTextV2FilterType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/input/rich-text.input-type';
+import { SelectFilterType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/input/select-filter.input-type';
 import {
   BigFloatScalarType,
   UUIDScalarType,
@@ -35,14 +39,13 @@ import { PositionScalarType } from 'src/engine/api/graphql/workspace-schema-buil
 import { RawJSONScalar } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/scalars/raw-json.scalar';
 import { getNumberFilterType } from 'src/engine/api/graphql/workspace-schema-builder/utils/get-number-filter-type.util';
 import { getNumberScalarType } from 'src/engine/api/graphql/workspace-schema-builder/utils/get-number-scalar-type.util';
-import { FieldMetadataType } from 'src/engine/metadata-modules/field-metadata/field-metadata.entity';
 
 export interface TypeOptions<T = any> {
   nullable?: boolean;
   isArray?: boolean;
   arrayDepth?: number;
   defaultValue?: T;
-  settings?: FieldMetadataSettings<FieldMetadataType | 'default'>;
+  settings?: FieldMetadataSettings<FieldMetadataType>;
   isIdField?: boolean;
 }
 
@@ -52,7 +55,7 @@ const StringArrayScalarType = new GraphQLList(GraphQLString);
 export class TypeMapperService {
   mapToScalarType(
     fieldMetadataType: FieldMetadataType,
-    settings?: FieldMetadataSettings<FieldMetadataType | 'default'>,
+    settings?: FieldMetadataSettings<FieldMetadataType>,
     isIdField?: boolean,
   ): GraphQLScalarType | undefined {
     if (isIdField || settings?.isForeignKey) {
@@ -87,7 +90,7 @@ export class TypeMapperService {
 
   mapToFilterType(
     fieldMetadataType: FieldMetadataType,
-    settings?: FieldMetadataSettings<FieldMetadataType | 'default'>,
+    settings?: FieldMetadataSettings<FieldMetadataType>,
     isIdField?: boolean,
   ): GraphQLInputObjectType | GraphQLScalarType | undefined {
     if (isIdField || settings?.isForeignKey) {
@@ -114,7 +117,10 @@ export class TypeMapperService {
       [FieldMetadataType.POSITION, FloatFilterType],
       [FieldMetadataType.RAW_JSON, RawJsonFilterType],
       [FieldMetadataType.RICH_TEXT, StringFilterType],
+      [FieldMetadataType.RICH_TEXT_V2, RichTextV2FilterType],
       [FieldMetadataType.ARRAY, ArrayFilterType],
+      [FieldMetadataType.MULTI_SELECT, MultiSelectFilterType],
+      [FieldMetadataType.SELECT, SelectFilterType],
       [FieldMetadataType.TS_VECTOR, StringFilterType], // TODO: Add TSVectorFilterType
     ]);
 

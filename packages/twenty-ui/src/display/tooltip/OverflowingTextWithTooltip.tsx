@@ -4,13 +4,15 @@ import { createPortal } from 'react-dom';
 
 import { THEME_COMMON } from '@ui/theme';
 
+import { isDefined } from 'twenty-shared';
 import { AppTooltip, TooltipDelay } from './AppTooltip';
 
 const spacing4 = THEME_COMMON.spacing(4);
 
-const StyledOverflowingText = styled.div<{
+const StyledOverflowingMultilineText = styled.div<{
   cursorPointer: boolean;
   size: 'large' | 'small';
+  displayedMaxRows: number;
 }>`
   cursor: ${({ cursorPointer }) => (cursorPointer ? 'pointer' : 'inherit')};
   font-family: inherit;
@@ -22,9 +24,13 @@ const StyledOverflowingText = styled.div<{
   text-decoration: inherit;
 
   text-overflow: ellipsis;
-  white-space: nowrap;
-
   height: ${({ size }) => (size === 'large' ? spacing4 : 'auto')};
+
+  -webkit-line-clamp: ${({ displayedMaxRows }) =>
+    displayedMaxRows ? displayedMaxRows.toString() : '1'};
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  white-space: pre-wrap;
 
   & :hover {
     text-overflow: ${({ cursorPointer }) =>
@@ -34,20 +40,56 @@ const StyledOverflowingText = styled.div<{
   }
 `;
 
+const StyledOverflowingText = styled.div<{
+  cursorPointer: boolean;
+  size: 'large' | 'small';
+}>`
+  cursor: ${({ cursorPointer }) => (cursorPointer ? 'pointer' : 'inherit')};
+  font-family: inherit;
+  font-size: inherit;
+
+  font-weight: inherit;
+  max-width: 100%;
+  text-decoration: inherit;
+
+  text-overflow: ellipsis;
+  overflow: hidden;
+  height: ${({ size }) => (size === 'large' ? spacing4 : 'auto')};
+
+  white-space: nowrap;
+
+  & :hover {
+    text-overflow: ${({ cursorPointer }) =>
+      cursorPointer ? 'clip' : 'ellipsis'};
+    white-space: ${({ cursorPointer }) =>
+      cursorPointer ? 'normal' : 'nowrap'};
+  }
+`;
+
+const Styledpre = styled.pre`
+  font-family: inherit;
+  white-space: pre-wrap;
+`;
+
 export const OverflowingTextWithTooltip = ({
   size = 'small',
   text,
-  mutliline,
+  isTooltipMultiline,
+  displayedMaxRows,
+  hideTooltip,
 }: {
   size?: 'large' | 'small';
   text: string | null | undefined;
-  mutliline?: boolean;
+  isTooltipMultiline?: boolean;
+  displayedMaxRows?: number;
+  hideTooltip?: boolean;
 }) => {
   const textElementId = `title-id-${+new Date()}`;
 
   const textRef = useRef<HTMLDivElement>(null);
 
   const [isTitleOverflowing, setIsTitleOverflowing] = useState(false);
+  const [shouldRenderTooltip, setShouldRenderTooltip] = useState(false);
 
   const handleMouseEnter = () => {
     const isOverflowing =
@@ -57,44 +99,66 @@ export const OverflowingTextWithTooltip = ({
         : false;
 
     setIsTitleOverflowing(isOverflowing);
+    setShouldRenderTooltip(true);
   };
 
   const handleMouseLeave = () => {
     setIsTitleOverflowing(false);
+    setShouldRenderTooltip(false);
   };
 
   const handleTooltipClick = (event: React.MouseEvent<HTMLDivElement>) => {
     event.stopPropagation();
     event.preventDefault();
   };
-
   return (
     <>
-      <StyledOverflowingText
-        data-testid="tooltip"
-        cursorPointer={isTitleOverflowing}
-        size={size}
-        ref={textRef}
-        id={textElementId}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      >
-        {text}
-      </StyledOverflowingText>
-      {isTitleOverflowing &&
+      {isDefined(displayedMaxRows) && (
+        <StyledOverflowingMultilineText
+          data-testid="tooltip"
+          cursorPointer={isTitleOverflowing}
+          size={size}
+          displayedMaxRows={displayedMaxRows}
+          ref={textRef}
+          id={textElementId}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          {text}
+        </StyledOverflowingMultilineText>
+      )}
+      {!isDefined(displayedMaxRows) && (
+        <StyledOverflowingText
+          data-testid="tooltip"
+          cursorPointer={isTitleOverflowing}
+          size={size}
+          ref={textRef}
+          id={textElementId}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          {text}
+        </StyledOverflowingText>
+      )}
+      {shouldRenderTooltip &&
+        isTitleOverflowing &&
         createPortal(
           <div onClick={handleTooltipClick}>
             <AppTooltip
               anchorSelect={`#${textElementId}`}
-              content={mutliline ? undefined : (text ?? '')}
               offset={5}
-              isOpen
+              hidden={!isTitleOverflowing || hideTooltip}
               noArrow
               place="bottom"
               positionStrategy="absolute"
               delay={TooltipDelay.mediumDelay}
+              isOpen={true}
             >
-              {mutliline ? <pre>{text}</pre> : ''}
+              {isTooltipMultiline ? (
+                <Styledpre>{text}</Styledpre>
+              ) : (
+                `${text || ''}`
+              )}
             </AppTooltip>
           </div>,
           document.body,
