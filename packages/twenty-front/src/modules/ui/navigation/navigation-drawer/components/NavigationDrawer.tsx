@@ -8,7 +8,7 @@ import { MOBILE_VIEWPORT } from 'twenty-ui';
 import { useIsMobile } from '@/ui/utilities/responsive/hooks/useIsMobile';
 
 import { NAV_DRAWER_WIDTHS } from '@/ui/navigation/navigation-drawer/constants/NavDrawerWidths';
-
+import { ScrollWrapper } from '@/ui/utilities/scroll/components/ScrollWrapper';
 import { useIsSettingsDrawer } from '@/navigation/hooks/useIsSettingsDrawer';
 import { isNavigationDrawerExpandedState } from '../../states/isNavigationDrawerExpanded';
 import { NavigationDrawerBackButton } from './NavigationDrawerBackButton';
@@ -53,7 +53,7 @@ const StyledItemsContainer = styled.div<{ isSettings?: boolean }>`
   display: flex;
   flex-direction: column;
   margin-bottom: auto;
-  overflow: ${({ isSettings }) => (isSettings ? 'visible' : 'hidden')};
+  overflow: ${({ isSettings }) => (isSettings ? 'scroll' : 'hidden')};
   flex: 1;
 `;
 
@@ -103,6 +103,10 @@ export const NavigationDrawer = ({
       }}
       isSettings={isSettingsDrawer}
     >
+      <ScrollWrapper
+        componentInstanceId="scroll-wrapper-navigation-drawer"
+        contextProviderName="navigationDrawer"
+      >
       <StyledContainer
         isSettings={isSettingsDrawer}
         isMobile={isMobile}
@@ -123,6 +127,7 @@ export const NavigationDrawer = ({
         </StyledItemsContainer>
         {footer}
       </StyledContainer>
+      </ScrollWrapper>
     </StyledAnimatedContainer>
   );
 };
