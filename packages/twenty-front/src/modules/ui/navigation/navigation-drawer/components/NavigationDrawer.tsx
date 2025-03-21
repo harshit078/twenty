@@ -8,9 +8,8 @@ import { MOBILE_VIEWPORT } from 'twenty-ui';
 import { useIsMobile } from '@/ui/utilities/responsive/hooks/useIsMobile';
 
 import { NAV_DRAWER_WIDTHS } from '@/ui/navigation/navigation-drawer/constants/NavDrawerWidths';
-
+import { ScrollWrapper } from '@/ui/utilities/scroll/components/ScrollWrapper';
 import { useIsSettingsDrawer } from '@/navigation/hooks/useIsSettingsDrawer';
-import { NavigationDrawerSection } from '@/ui/navigation/navigation-drawer/components/NavigationDrawerSection';
 import { isNavigationDrawerExpandedState } from '../../states/isNavigationDrawerExpanded';
 import { NavigationDrawerBackButton } from './NavigationDrawerBackButton';
 import { NavigationDrawerHeader } from './NavigationDrawerHeader';
@@ -19,7 +18,8 @@ export type NavigationDrawerProps = {
   children: ReactNode;
   className?: string;
   footer?: ReactNode;
-  title: string;
+  logo?: string;
+  title?: string;
 };
 
 const StyledAnimatedContainer = styled(motion.div)<{ isSettings?: boolean }>`
@@ -45,7 +45,9 @@ const StyledContainer = styled.div<{
       : theme.spacing(3, 2, 4)};
   padding-right: 0px;
   @media (max-width: ${MOBILE_VIEWPORT}px) {
-    width: 95%;
+    width: 100%;
+    padding-left: 20px;
+    padding-right: 20px;
   }
 `;
 
@@ -53,7 +55,7 @@ const StyledItemsContainer = styled.div<{ isSettings?: boolean }>`
   display: flex;
   flex-direction: column;
   margin-bottom: auto;
-  overflow: ${({ isSettings }) => (isSettings ? 'visible' : 'hidden')};
+  overflow: ${({ isSettings }) => (isSettings ? 'scroll' : 'hidden')};
   flex: 1;
 `;
 
@@ -61,6 +63,7 @@ export const NavigationDrawer = ({
   children,
   className,
   footer,
+  logo,
   title,
 }: NavigationDrawerProps) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -100,22 +103,31 @@ export const NavigationDrawer = ({
       transition={{ duration: theme.animation.duration.normal }}
       isSettings={isSettingsDrawer}
     >
-      <StyledContainer
-        isSettings={isSettingsDrawer}
-        isMobile={isMobile}
-        onMouseEnter={handleHover}
-        onMouseLeave={handleMouseLeave}
+      <ScrollWrapper
+        componentInstanceId="scroll-wrapper-navigation-drawer"
+        contextProviderName="navigationDrawer"
       >
-        {isSettingsDrawer && title ? (
-          !isMobile && <NavigationDrawerBackButton title={title} />
-        ) : (
-          <NavigationDrawerHeader showCollapseButton={isHovered} />
-        )}
-        <StyledItemsContainer isSettings={isSettingsDrawer}>
-          {children}
-        </StyledItemsContainer>
-        <NavigationDrawerSection>{footer}</NavigationDrawerSection>
-      </StyledContainer>
+        <StyledContainer
+          isSettings={isSettingsDrawer}
+          isMobile={isMobile}
+          onMouseEnter={handleHover}
+          onMouseLeave={handleMouseLeave}
+        >
+          {isSettingsDrawer && title ? (
+            !isMobile && <NavigationDrawerBackButton title={title} />
+          ) : (
+            <NavigationDrawerHeader
+              name={title}
+              logo={logo}
+              showCollapseButton={isHovered}
+            />
+          )}
+          <StyledItemsContainer isSettings={isSettingsDrawer}>
+            {children}
+          </StyledItemsContainer>
+          {footer}
+        </StyledContainer>
+      </ScrollWrapper>
     </StyledAnimatedContainer>
   );
 };
