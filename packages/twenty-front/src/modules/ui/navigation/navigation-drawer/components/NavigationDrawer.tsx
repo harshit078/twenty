@@ -14,6 +14,7 @@ import { NavigationDrawerSection } from '@/ui/navigation/navigation-drawer/compo
 import { isNavigationDrawerExpandedState } from '../../states/isNavigationDrawerExpanded';
 import { NavigationDrawerBackButton } from './NavigationDrawerBackButton';
 import { NavigationDrawerHeader } from './NavigationDrawerHeader';
+import { ScrollWrapper } from '@/ui/utilities/scroll/components/ScrollWrapper';
 
 export type NavigationDrawerProps = {
   children: ReactNode;
@@ -53,7 +54,7 @@ const StyledItemsContainer = styled.div<{ isSettings?: boolean }>`
   display: flex;
   flex-direction: column;
   margin-bottom: auto;
-  overflow: ${({ isSettings }) => (isSettings ? 'visible' : 'hidden')};
+  overflow: ${({ isSettings }) => (isSettings ? 'scroll' : 'hidden')};
   flex: 1;
 `;
 
@@ -100,22 +101,27 @@ export const NavigationDrawer = ({
       transition={{ duration: theme.animation.duration.normal }}
       isSettings={isSettingsDrawer}
     >
-      <StyledContainer
-        isSettings={isSettingsDrawer}
-        isMobile={isMobile}
-        onMouseEnter={handleHover}
-        onMouseLeave={handleMouseLeave}
+      <ScrollWrapper
+        componentInstanceId="scroll-wrapper-navigation-drawer"
+        contextProviderName="navigationDrawer"
       >
-        {isSettingsDrawer && title ? (
-          !isMobile && <NavigationDrawerBackButton title={title} />
-        ) : (
-          <NavigationDrawerHeader showCollapseButton={isHovered} />
-        )}
-        <StyledItemsContainer isSettings={isSettingsDrawer}>
-          {children}
-        </StyledItemsContainer>
-        <NavigationDrawerSection>{footer}</NavigationDrawerSection>
-      </StyledContainer>
+        <StyledContainer
+          isSettings={isSettingsDrawer}
+          isMobile={isMobile}
+          onMouseEnter={handleHover}
+          onMouseLeave={handleMouseLeave}
+        >
+          {isSettingsDrawer && title ? (
+            !isMobile && <NavigationDrawerBackButton title={title} />
+          ) : (
+            <NavigationDrawerHeader showCollapseButton={isHovered} />
+          )}
+          <StyledItemsContainer isSettings={isSettingsDrawer}>
+            {children}
+          </StyledItemsContainer>
+          <NavigationDrawerSection>{footer}</NavigationDrawerSection>
+        </StyledContainer>
+      </ScrollWrapper>
     </StyledAnimatedContainer>
   );
 };
