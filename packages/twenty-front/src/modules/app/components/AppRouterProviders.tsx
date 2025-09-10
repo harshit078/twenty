@@ -10,6 +10,7 @@ import { ClientConfigProviderEffect } from '@/client-config/components/ClientCon
 import { MainContextStoreProvider } from '@/context-store/components/MainContextStoreProvider';
 import { ErrorMessageEffect } from '@/error-handler/components/ErrorMessageEffect';
 import { PromiseRejectionEffect } from '@/error-handler/components/PromiseRejectionEffect';
+import { ImpersonationBannerWrapper } from '@/impersonation-banner/components/ImpersonationBannerWrapper';
 import { ApolloCoreProvider } from '@/object-metadata/components/ApolloCoreProvider';
 import { ObjectMetadataItemsLoadEffect } from '@/object-metadata/components/ObjectMetadataItemsLoadEffect';
 import { ObjectMetadataItemsProvider } from '@/object-metadata/components/ObjectMetadataItemsProvider';
@@ -60,6 +61,7 @@ export const AppRouterProviders = () => {
                                 <GotoHotkeysEffectsProvider />
                                 <PageTitle title={pageTitle} />
                                 <PageFavicon />
+                                <ImpersonationBannerWrapper />
                                 <Outlet />
                               </StrictMode>
                             </DialogManager>
